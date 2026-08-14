@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+gunicorn
 python-multipart
 
 sqlalchemy
@@ -24,16 +25,9 @@ celery
 flower
 
 google-generativeai
+
 langchain
 langchain-google-genai
-
-sentence-transformers
-transformers
-torch
-
-spacy
-nltk
-textblob
 
 PyMuPDF
 pdfplumber
@@ -55,6 +49,5 @@ pytz
 loguru
 python-json-logger
 
-gunicorn
 psutil
 itsdangerous==2.2.0
