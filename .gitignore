@@ -19,3 +19,21 @@ backend/logs/*.log
 # OS files
 .DS_Store
 Thumbs.db
+# SQLite databases
+*.db
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Python virtual environment
+.venv/
+venv/
