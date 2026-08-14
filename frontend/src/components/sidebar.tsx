@@ -12,8 +12,6 @@ interface SidebarProps {
   onDashboard: () => void;
   onCreate: () => void;
   onLogout: () => void;
-  onDocuments?: () => void;
-  onAnalytics?: () => void;
   onLearning?: () => void;
   onRecommendations?: () => void;
   onSettings?: () => void;
@@ -23,7 +21,7 @@ interface SidebarProps {
   onToggleCollapse?: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalytics, onLearning, onRecommendations, onSettings, currentView, userEmail, isCollapsed: controlledCollapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ onDashboard, onCreate, onLogout, onLearning, onRecommendations, onSettings, currentView, userEmail, isCollapsed: controlledCollapsed, onToggleCollapse }: SidebarProps) {
   const { theme } = useThemeMode();
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -72,24 +70,6 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
       description: 'Generate quiz'
     },
     {
-      icon: FileText,
-      label: 'Documents',
-      shortLabel: 'Docs',
-      id: 'documents',
-      color: 'from-cyan-500 to-sky-600',
-      onClick: onDocuments ?? onDashboard,
-      description: 'Uploaded sources'
-    },
-    {
-      icon: BarChart3,
-      label: 'Analytics',
-      shortLabel: 'Stats',
-      id: 'analytics',
-      color: 'from-emerald-500 to-green-600',
-      onClick: onAnalytics ?? onDashboard,
-      description: 'Performance stats'
-    },
-    {
       icon: BookOpen,
       label: 'Learning Path',
       shortLabel: 'Learn',
@@ -107,7 +87,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
       onClick: onRecommendations ?? onDashboard,
       description: 'Smart suggestions'
     },
-  ], [onAnalytics, onCreate, onDashboard, onDocuments, onLearning, onRecommendations]);
+  ], [onCreate, onDashboard, onLearning, onRecommendations]);
 
   const containerVariants = {
     hidden: { x: -300, opacity: 0 },
@@ -137,41 +117,48 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     <>
       {/* Mobile Navigation - Modern Bottom Navigation (Similar to YouTube, Amazon) */}
       <motion.nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t lg:hidden"
+        className="fixed inset-x-3 bottom-2 z-40 rounded-[28px] border px-1 py-2 shadow-[0_-14px_35px_rgba(59,130,246,0.14)] lg:hidden"
         style={{
-          borderColor: theme === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(229, 231, 235, 0.5)',
-          backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.97)',
-          backdropFilter: 'blur(10px)',
+          borderColor: theme === 'dark' ? 'rgba(148, 163, 184, 0.12)' : 'rgba(229, 231, 235, 0.9)',
+          backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(24px)',
         }}
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
       >
-        <div className="flex items-center justify-around gap-1 px-1 py-2 safe-area-inset-bottom">
+        <div className="mx-auto flex max-w-md items-center justify-around gap-1.5 safe-area-inset-bottom">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = currentView === item.id;
             return (
-              <motion.button
+              <button
                 key={item.id}
-                onClick={() => {
-                  item.onClick();
-                }}
-                whileTap={{ scale: 0.92 }}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 flex-1',
-                  active
-                    ? theme === 'dark'
-                      ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 text-blue-400'
-                      : 'bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600'
-                    : theme === 'dark'
-                      ? 'text-slate-400 hover:bg-white/5 hover:text-slate-300'
-                      : 'text-slate-600 hover:bg-slate-100'
-                )}
+                onClick={() => item.onClick()}
+                className="relative flex-1 rounded-[22px] px-1 py-1"
+                type="button"
               >
-                <Icon size={20} />
-                <span className="text-[11px] font-semibold leading-none">{item.shortLabel}</span>
-              </motion.button>
+                <div
+                  className={cn(
+                    'relative flex flex-col items-center justify-center gap-1.5 rounded-[22px] px-2.5 py-2.5 transition-all duration-200 font-semibold',
+                    active
+                      ? theme === 'dark'
+                        ? 'bg-blue-500/20 text-blue-100 shadow-[0_8px_22px_rgba(59,130,246,0.2)]'
+                        : 'bg-blue-100 text-blue-800 shadow-[0_8px_22px_rgba(59,130,246,0.14)]'
+                      : theme === 'dark'
+                        ? 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                        : 'text-slate-600 hover:bg-slate-100/90'
+                  )}
+                >
+                  <Icon size={19} strokeWidth={1.8} />
+                  <span className={cn(
+                    'text-[10px] font-bold leading-none tracking-[0.14em] uppercase',
+                    active ? 'opacity-100' : 'opacity-80'
+                  )}>
+                    {item.shortLabel}
+                  </span>
+                </div>
+              </button>
             );
           })}
         </div>
@@ -223,13 +210,9 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
               transition={{ delay: 0.2 }}
             >
               <div className={cn('relative mb-4 flex items-center', isCollapsed ? 'justify-center' : 'gap-3')}>
-                <motion.div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-500 to-violet-500 shadow-lg shadow-cyan-500/30 ring-1 ring-white/10"
-                  whileHover={{ scale: 1.04, rotate: 4 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                >
-                  <Brain className="h-5 w-5 text-white" />
-                </motion.div>
+                <div className={cn('flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-purple-500/20', isCollapsed ? 'h-11 w-11' : 'h-12 w-12')}>
+                  <Brain className={cn(isCollapsed ? 'h-5 w-5' : 'h-6 w-6')} />
+                </div>
 
                 {!isCollapsed && (
                   <div className="min-w-0 flex-1 overflow-hidden">
@@ -389,18 +372,6 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
         )}
       </AnimatePresence>
 
-      {/* Overlay for desktop sidebar (hidden on mobile) */}
-      <AnimatePresence>
-        {isOpen && !isMobile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className={`fixed inset-0 z-30 hidden lg:block ${theme === 'dark' ? 'bg-black/30' : 'bg-white/20'}`}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 }

@@ -6,8 +6,6 @@ import { generateQuiz } from '@/lib/quizEngine';
 import { Dashboard } from '@/views/Dashboard';
 import { Landing } from '@/views/Landing';
 import { CreateQuiz } from '@/views/CreateQuiz';
-import { Documents } from '@/views/Documents';
-import { Analytics } from '@/views/Analytics';
 import { LearningPath } from '@/views/LearningPath';
 import { Recommendations } from '@/views/Recommendations';
 import { QuizPlayer } from '@/views/QuizPlayer';
@@ -39,8 +37,6 @@ function App() {
   const goLanding = useCallback(() => changeView({ name: 'landing' }), [changeView]);
   const goDashboard = useCallback(() => changeView({ name: 'dashboard' }), [changeView]);
   const goCreate = useCallback(() => changeView({ name: 'create' }), [changeView]);
-  const goDocuments = useCallback(() => changeView({ name: 'documents' }), [changeView]);
-  const goAnalytics = useCallback(() => changeView({ name: 'analytics' }), [changeView]);
   const goLearning = useCallback(() => changeView({ name: 'learning' }), [changeView]);
   const goRecommendations = useCallback(() => changeView({ name: 'recommendations' }), [changeView]);
   const goSettings = useCallback(() => changeView({ name: 'settings' }), [changeView]);
@@ -215,8 +211,6 @@ function App() {
           onDashboard={goDashboard}
           onCreate={goCreate}
           onLogout={handleLogout}
-          onDocuments={goDocuments}
-          onAnalytics={goAnalytics}
           onLearning={goLearning}
           onRecommendations={goRecommendations}
           onSettings={goSettings}
@@ -228,7 +222,7 @@ function App() {
       )}
 
       <main
-        className="flex-1 transition-all duration-300"
+        className="flex-1 pb-24 transition-all duration-300 lg:pb-0"
         style={isFullScreenView ? undefined : { marginLeft: isMobile ? 0 : sidebarCollapsed ? 96 : 320 }}
       >
         {!isFullScreenView && (
@@ -286,8 +280,6 @@ function App() {
               exit="exit"
             >
               {view.name === 'dashboard' && <Dashboard onNewQuiz={goCreate} onStartQuiz={startQuiz} />}
-              {view.name === 'documents' && <Documents userName={user?.name} />}
-              {view.name === 'analytics' && <Analytics userName={user?.name} />}
               {view.name === 'learning' && <LearningPath userName={user?.name} />}
               {view.name === 'recommendations' && <Recommendations userName={user?.name} />}
               {view.name === 'settings' && <SettingsView user={user} onBack={goDashboard} />}
@@ -330,7 +322,7 @@ function App() {
       </main>
 
       {/* Chatbot Widget */}
-      {user && <Chatbot />}
+      {user && view.name !== 'quiz' && <Chatbot />}
     </div>
   );
 }

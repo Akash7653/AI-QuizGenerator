@@ -29,6 +29,12 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // Suppress connection refused errors on startup (backend may be starting)
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+      console.debug('[API] Connection refused - backend may be starting');
+      return Promise.reject(error);
+    }
+
     const errorMsg = `[API] Error: ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status}`;
     console.error(errorMsg, error.response?.data || error.message);
     return Promise.reject(error);

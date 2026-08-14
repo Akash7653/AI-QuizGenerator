@@ -50,13 +50,13 @@ export function Results({ result, onDashboard, onNewQuiz, onRetry, onRecommended
   const visibleWrong = showAll ? wrongAnswers : wrongAnswers.slice(0, 3);
 
   return (
-    <div className="mx-auto w-full max-w-none space-y-6 lg:min-h-[calc(100vh-5rem)]">
+    <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6 lg:min-h-[calc(100vh-5rem)]">
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={onDashboard} className="-ml-3 text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Dashboard</Button>
         <Badge variant="secondary">Quiz complete</Badge>
       </div>
 
-      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-accent/40 to-background p-6 text-center sm:p-10">
+      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-accent/40 to-background p-5 text-center shadow-[0_18px_50px_rgba(99,102,241,0.08)] sm:rounded-3xl sm:p-10">
         <div className="absolute inset-0 bg-grid opacity-20" />
         <div className="relative">
           <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, type: 'spring' }} className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-primary">

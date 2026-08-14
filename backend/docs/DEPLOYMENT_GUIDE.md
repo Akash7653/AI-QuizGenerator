@@ -42,7 +42,7 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 
 # Google Gemini
 GEMINI_API_KEY=<your-gemini-api-key>
-GEMINI_MODEL=gemini-pro
+GEMINI_MODEL=gemini-flash-latest
 GEMINI_TEMPERATURE=0.7
 GEMINI_MAX_TOKENS=1024
 

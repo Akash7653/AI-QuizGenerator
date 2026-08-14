@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     
     # Google Gemini
     GEMINI_API_KEY: str = Field(..., description="Google Gemini API key")
-    GEMINI_MODEL: str = "gemini-pro"
+    GEMINI_MODEL: str = "gemini-flash-latest"
     GEMINI_TEMPERATURE: float = 0.7
     GEMINI_MAX_TOKENS: int = 1024
     
@@ -52,7 +52,11 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = Field(..., description="Celery result backend")
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://ai-quiz-generator-orcin.vercel.app",
+    ]
     
     @validator("CORS_ORIGINS", pre=True)
     def parse_cors_origins(cls, v):

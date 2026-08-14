@@ -191,7 +191,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
 
   return (
     <motion.div
-      className="space-y-8"
+      className="space-y-4 sm:space-y-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -201,7 +201,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
         variants={itemVariants}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`relative overflow-hidden rounded-[30px] border shadow-[0_30px_80px_rgba(59,130,246,0.14)] backdrop-blur-xl p-6 sm:p-8 ${
+        className={`relative overflow-hidden rounded-[24px] border shadow-[0_20px_60px_rgba(59,130,246,0.12)] backdrop-blur-xl p-4 sm:rounded-[30px] sm:p-8 ${
           theme === 'dark'
             ? 'border-blue-500/20 bg-gradient-to-br from-slate-900 via-blue-950/60 to-violet-950/50'
             : 'border-blue-200/60 bg-gradient-to-br from-white via-blue-50 to-violet-50'
@@ -230,20 +230,20 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
           />
         </motion.div>
 
-        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
             <motion.div
               className="flex items-center gap-2"
               animate={{ x: [0, 5, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <Sparkles className={`h-5 w-5 ${theme === 'dark' ? 'text-cyan-400' : 'text-blue-600'}`} />
-              <span className={`text-sm font-semibold uppercase tracking-[0.18em] ${theme === 'dark' ? 'text-cyan-300' : 'text-blue-700'}`}>
+              <Sparkles className={`h-4 w-4 sm:h-5 sm:w-5 ${theme === 'dark' ? 'text-cyan-400' : 'text-blue-600'}`} />
+              <span className={`text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-sm ${theme === 'dark' ? 'text-cyan-300' : 'text-blue-700'}`}>
                 Welcome back
               </span>
             </motion.div>
 
-            <h1 className={`max-w-xl text-3xl font-black tracking-tight sm:text-5xl bg-clip-text text-transparent ${
+            <h1 className={`max-w-xl text-2xl font-black tracking-tight sm:text-5xl bg-clip-text text-transparent ${
               theme === 'dark'
                 ? 'bg-gradient-to-r from-cyan-300 via-blue-300 to-violet-300'
                 : 'bg-gradient-to-r from-blue-700 via-violet-700 to-pink-600'
@@ -251,30 +251,30 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
               Ready to learn something new today?
             </h1>
 
-            <p className={`max-w-lg text-sm sm:text-base leading-7 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
+            <p className={`max-w-lg text-sm leading-6 sm:text-base ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
               Generate a quiz from any topic or upload a PDF and let QuizGen create questions instantly.
             </p>
 
-            <div className="flex flex-wrap gap-3 pt-2">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+            <div className="flex w-full flex-col gap-3 pt-1 sm:w-auto sm:flex-row sm:flex-wrap">
+              <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.96 }} className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   onClick={onNewQuiz}
-                  className="h-11 rounded-xl text-base shadow-[0_18px_45px_rgba(59,130,246,0.35)] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500"
+                  className="h-11 w-full rounded-xl text-sm font-bold shadow-[0_18px_45px_rgba(59,130,246,0.35)] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-300 sm:h-12 sm:w-auto sm:text-base"
                 >
-                  <Plus className="mr-2 h-5 w-5" /> Create New Quiz
+                  <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Quiz
                 </Button>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+              <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.96 }} className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
                   onClick={() => startSuggestion('Machine Learning')}
-                  className={`h-11 rounded-xl text-base ${
+                  className={`h-11 w-full rounded-xl border-2 text-sm font-semibold transition-all duration-300 sm:h-12 sm:w-auto sm:text-base ${
                     theme === 'dark'
-                      ? 'border-slate-600 hover:bg-slate-700/50'
-                      : 'border-slate-300 hover:bg-slate-100/50'
+                      ? 'border-slate-600 hover:bg-slate-700/60 hover:border-blue-500'
+                      : 'border-slate-300 hover:bg-slate-100/60 hover:border-blue-400'
                   }`}
                 >
                   <Zap className="mr-2 h-4 w-4" /> Quick Start: ML
@@ -314,17 +314,17 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Progress chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
+        <Card className={`lg:col-span-2 overflow-hidden border-0 shadow-[0_18px_50px_rgba(59,130,246,0.12)] ${theme === 'dark' ? 'bg-gradient-to-br from-slate-900 via-sky-950/70 to-indigo-950/80' : 'bg-gradient-to-br from-white via-blue-50 to-violet-50'}`}>
+          <CardHeader className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" /> Learning Progress</CardTitle>
                 <CardDescription>Your score trend over recent quizzes</CardDescription>
               </div>
-              <Badge variant="secondary">{stats.trend.length} quizzes</Badge>
+              <Badge variant="secondary" className="rounded-full px-2.5 py-1">{stats.trend.length} quizzes</Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             {stats.trend.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={stats.trend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -351,7 +351,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
         </Card>
 
         {/* Average radial */}
-        <Card>
+        <Card className={`overflow-hidden border-0 shadow-[0_18px_50px_rgba(168,85,247,0.10)] ${theme === 'dark' ? 'bg-gradient-to-br from-slate-900 via-violet-950/70 to-fuchsia-950/60' : 'bg-gradient-to-br from-violet-50 via-white to-fuchsia-50'}`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> Overall Accuracy</CardTitle>
             <CardDescription>Your average across all quizzes</CardDescription>
@@ -406,7 +406,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent quizzes */}
-        <Card>
+        <Card className={`overflow-hidden border-0 shadow-[0_20px_50px_rgba(59,130,246,0.12)] ${theme === 'dark' ? 'bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/60' : 'bg-gradient-to-br from-slate-50 via-white to-blue-50'}`}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2"><History className="h-4 w-4 text-primary" /> Recent Quizzes</CardTitle>
@@ -434,7 +434,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between rounded-xl border border-border/60 p-3 transition-colors hover:bg-accent/40"
+                  className={`flex items-center justify-between rounded-2xl border p-3.5 transition-all duration-300 hover:-translate-y-0.5 ${theme === 'dark' ? 'border-slate-700/80 bg-white/5 hover:border-blue-400/40 hover:bg-slate-800/70' : 'border-slate-200/80 bg-white/70 hover:border-blue-200 hover:bg-blue-50/60'}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold ${pct >= 70 ? 'bg-success/15 text-success' : pct >= 50 ? 'bg-warning/15 text-warning' : 'bg-destructive/15 text-destructive'}`}>
@@ -445,7 +445,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
                       <p className="text-xs text-muted-foreground">{r.difficulty} · {r.question_type} · {fmtTime(r.time_taken)}</p>
                     </div>
                   </div>
-                  <Badge variant={r.source_type === 'pdf' ? 'default' : 'secondary'} className="text-[10px]">
+                  <Badge variant={r.source_type === 'pdf' ? 'default' : 'secondary'} className="text-[10px] rounded-full">
                     {r.source_type === 'pdf' ? 'PDF' : r.source_type === 'text' ? 'Text' : r.source_type === 'url' ? 'URL' : 'Topic'}
                   </Badge>
                 </motion.div>
@@ -455,7 +455,7 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
         </Card>
 
         {/* Recommended topics */}
-        <Card>
+        <Card className={`overflow-hidden border-0 shadow-[0_18px_45px_rgba(168,85,247,0.12)] ${theme === 'dark' ? 'bg-gradient-to-br from-slate-900 via-violet-950/65 to-pink-950/60' : 'bg-gradient-to-br from-violet-50 via-white to-pink-50'}`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" /> Recommended Topics</CardTitle>
             <CardDescription>Jump into a popular subject</CardDescription>
@@ -470,9 +470,9 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
                   transition={{ delay: i * 0.04 }}
                   whileHover={{ y: -2 }}
                   onClick={() => startSuggestion(topic)}
-                  className="group flex flex-col items-start gap-1 rounded-xl border border-border/60 p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent/40"
+                  className={`group flex flex-col items-start gap-1.5 rounded-2xl border p-3 text-left transition-all duration-300 hover:shadow-lg ${theme === 'dark' ? 'border-slate-700/80 bg-gradient-to-br from-slate-800/80 to-slate-900/80 hover:border-violet-400/60' : 'border-slate-200/80 bg-gradient-to-br from-white/90 to-violet-50/80 hover:border-violet-200'}`}
                 >
-                  <BookOpen className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <BookOpen className={`h-4 w-4 transition-colors group-hover:text-primary ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`} />
                   <span className="text-sm font-medium leading-tight">{topic}</span>
                 </motion.button>
               ))}
@@ -586,17 +586,17 @@ function StatCard({ icon: Icon, label, value, color, delay }: { icon: any; label
           : `border-slate-200/70 bg-gradient-to-br ${colors.bgLight} backdrop-blur-xl hover:border-slate-300/80`
       }`}>
 
-        <CardContent className="flex items-center gap-4 p-5">
+        <CardContent className="flex items-center gap-2.5 p-3 sm:gap-4 sm:p-5">
           <motion.div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.gradient} shadow-lg`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${colors.gradient} shadow-md sm:h-12 sm:w-12 sm:rounded-2xl sm:shadow-lg`}
             whileHover={{ rotate: 10, scale: 1.1 }}
             transition={{ type: 'spring', stiffness: 400 }}
           >
-            <Icon className="h-5 w-5 text-white" />
+            <Icon className="h-4 w-4 text-white sm:h-5 sm:w-5" />
           </motion.div>
-          <div className="min-w-0">
-            <p className={`truncate text-xs font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{label}</p>
-            <p className={`text-2xl font-extrabold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+          <div className="min-w-0 flex-1">
+            <p className={`truncate text-[10px] font-medium leading-none sm:text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{label}</p>
+            <p className={`mt-1 text-lg font-extrabold tracking-tight whitespace-nowrap sm:text-2xl ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{value}</p>
           </div>
         </CardContent>
       </Card>

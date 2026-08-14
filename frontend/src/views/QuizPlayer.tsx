@@ -22,6 +22,7 @@ export function QuizPlayer({ config, questions, onComplete, onExit }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [seconds, setSeconds] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const current = questions[currentIndex];
   const currentAnswer = answers[current?.id] ?? '';
   const progress = ((currentIndex + 1) / questions.length) * 100;
@@ -104,7 +105,7 @@ export function QuizPlayer({ config, questions, onComplete, onExit }: Props) {
   return (
     <div className="mx-auto w-full max-w-none space-y-6 pb-24 lg:min-h-[calc(100vh-5rem)] lg:pb-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" onClick={onExit} className="-ml-3 text-muted-foreground">
+        <Button variant="ghost" onClick={() => setShowExitConfirm(true)} className="-ml-3 text-muted-foreground">
           <ArrowLeft className="mr-2 h-4 w-4" /> Exit quiz
         </Button>
         <div className="flex items-center gap-2">
@@ -233,6 +234,35 @@ export function QuizPlayer({ config, questions, onComplete, onExit }: Props) {
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={() => setShowConfirm(false)}>Keep reviewing</Button>
                   <Button onClick={submit}><Send className="mr-2 h-4 w-4" /> Submit quiz</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {showExitConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm"
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 18 }}
+            animate={{ scale: 1, y: 0 }}
+            className="w-full max-w-md"
+          >
+            <Card className="border-primary/20 bg-gradient-to-br from-background via-background to-violet-500/10 shadow-[0_30px_90px_rgba(99,102,241,0.25)]">
+              <CardHeader><CardTitle>Leave this quiz?</CardTitle></CardHeader>
+              <CardContent className="space-y-5">
+                <p className="text-sm text-muted-foreground">If you leave now, your current answers will be scored and you will see the result summary instead of returning to the dashboard.</p>
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setShowExitConfirm(false)}>Stay</Button>
+                  <Button onClick={() => {
+                    setShowExitConfirm(false);
+                    submit();
+                  }}><ArrowLeft className="mr-2 h-4 w-4" /> Leave and view results</Button>
                 </div>
               </CardContent>
             </Card>

@@ -44,11 +44,14 @@ const TOPIC_SUGGESTIONS = [
   // Modern Technologies
   'Blockchain', 'Cryptocurrency', 'Web3', 'IoT', 'Embedded Systems',
   'Mobile Development', 'Android', 'iOS', 'Flutter', 'React Native',
-  'Game Development', 'Unity', 'Unreal Engine',
+  'Game Development', 'Unity', 'Unreal Engine', 'Cybersecurity', 'Ethical Hacking',
+  'Generative AI', 'Prompt Engineering', 'MLOps', 'DevOps', 'UI/UX Design',
+  'Product Management', 'Agile', 'Scrum', 'AR/VR', 'Automation',
   
   // Soft Skills
   'Communication', 'Leadership', 'Time Management', 'Problem Solving',
-  'Critical Thinking', 'Creativity', 'Emotional Intelligence',
+  'Critical Thinking', 'Creativity', 'Emotional Intelligence', 'Negotiation',
+  'Decision Making', 'Public Speaking', 'Teamwork',
 ];
 
 export function getTopicSuggestions(): string[] {

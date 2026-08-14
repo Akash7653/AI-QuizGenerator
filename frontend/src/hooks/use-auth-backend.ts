@@ -46,19 +46,24 @@ export function useAuthBackend() {
   const [error, setError] = useState<string | null>(null);
 
   const checkAuth = useCallback(async () => {
+    setLoading(true);
     try {
       console.log('[Auth] checkAuth - checking session...');
-      
-      // Try to fetch profile - if it fails, session doesn't exist
       const profile = await authAPI.getProfile();
       console.log('[Auth] Profile fetched successfully:', profile);
       setUser(profile);
       setError(null);
     } catch (err: any) {
-      console.error('[Auth] checkAuth error:', err?.response?.status, err?.response?.data || err.message);
+      const errMsg = parseApiError(err, 'Failed to fetch profile');
+      // Only log network errors if backend is expected to be running
+      if (err.code !== 'ERR_NETWORK' && err.code !== 'ECONNREFUSED') {
+        console.error('[Auth] checkAuth error:', errMsg);
+      }
       setUser(null);
-      // Keep initial auth bootstrap silent when not authenticated
-      setError(null);
+      // Don't set error state on network errors - just treat as not logged in
+      if (err.code !== 'ERR_NETWORK' && err.code !== 'ECONNREFUSED' && err.response?.status !== 'undefined') {
+        setError(errMsg);
+      }
     } finally {
       setLoading(false);
     }

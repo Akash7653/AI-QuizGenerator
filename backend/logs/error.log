@@ -861,3 +861,48 @@ connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection re
 2026-08-14 00:02:43 | ERROR    | app.nlp.embedding:_load_model:44 - Failed to load embedding model: The paging file is too small for this operation to complete. (os error 1455)
 2026-08-14 00:02:50 | ERROR    | app.utils.cache:_connect:27 - Failed to connect to Redis: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
 2026-08-14 00:09:05 | ERROR    | app.utils.cache:_connect:27 - Failed to connect to Redis: Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.
+2026-08-14 18:46:56 | ERROR    | app.api.chatbot.router:chat_message:79 - Chatbot error: 400 API key not valid. Please pass a valid API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key not valid. Please pass a valid API key."
+]
+2026-08-14 18:52:18 | ERROR    | app.api.chatbot.router:chat_message:79 - Chatbot error: 400 API key not valid. Please pass a valid API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key not valid. Please pass a valid API key."
+]
+2026-08-14 18:59:50 | ERROR    | app.api.chatbot.router:chat_message:79 - Chatbot error: 400 API key not valid. Please pass a valid API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key not valid. Please pass a valid API key."
+]
+2026-08-14 19:00:30 | ERROR    | app.api.chatbot.router:chat_message:79 - Chatbot error: 400 API key not valid. Please pass a valid API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key not valid. Please pass a valid API key."
+]
+2026-08-14 19:00:50 | ERROR    | app.api.chatbot.router:chat_message:79 - Chatbot error: 400 API key not valid. Please pass a valid API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key not valid. Please pass a valid API key."
+]
