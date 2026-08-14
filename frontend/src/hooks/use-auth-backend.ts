@@ -13,7 +13,7 @@ function delay(ms: number) {
 
 interface User {
   id: number;
-  name: string;
+  username: string;
   email: string;
   role: string;
   profile_image?: string;
@@ -112,12 +112,12 @@ export function useAuthBackend() {
     }
   }, [checkAuth]);
 
-  const signUp = useCallback(async (name: string, email: string, password: string, role: string = 'student') => {
+  const signUp = useCallback(async (username: string, email: string, password: string, role: string = 'student') => {
     setLoading(true);
     setError(null);
     try {
       console.log('[Auth] Attempting registration...');
-      await authAPI.register({ name, email, password, role });
+      await authAPI.register({ username, email, password, role });
 
       // Auto-sign-in right after successful registration
       console.log('[Auth] Registration successful, signing in...');
@@ -159,7 +159,7 @@ export function useAuthBackend() {
     }
   }, []);
 
-  const updateProfile = useCallback(async (data: { name?: string; email?: string; profile_image?: string }) => {
+  const updateProfile = useCallback(async (data: { username?: string; email?: string; profile_image?: string }) => {
     try {
       const updatedUser = await authAPI.updateProfile(data);
       setUser(updatedUser);

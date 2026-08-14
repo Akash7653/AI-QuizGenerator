@@ -79,6 +79,7 @@ function App() {
   }, [signOut, goLanding]);
 
   const isFullScreenView = view.name === 'quiz' || view.name === 'results';
+  const isChatbotVisible = user && view.name !== 'quiz' && view.name !== 'results' && view.name !== 'create';
 
   const goAuth = useCallback(() => {
     setRouteLoading(true);
@@ -280,10 +281,10 @@ function App() {
               exit="exit"
             >
               {view.name === 'dashboard' && <Dashboard onNewQuiz={goCreate} onStartQuiz={startQuiz} />}
-              {view.name === 'learning' && <LearningPath userName={user?.name} />}
-              {view.name === 'recommendations' && <Recommendations userName={user?.name} />}
+              {view.name === 'learning' && <LearningPath userName={user?.username} />}
+              {view.name === 'recommendations' && <Recommendations userName={user?.username} />}
               {view.name === 'settings' && <SettingsView user={user} onBack={goDashboard} />}
-              {view.name === 'create' && <CreateQuiz userName={user?.name} onGenerate={startQuiz} />}
+              {view.name === 'create' && <CreateQuiz userName={user?.username} onGenerate={startQuiz} />}
               {view.name === 'quiz' && (
                 <QuizPlayer
                   config={view.config}
@@ -322,7 +323,7 @@ function App() {
       </main>
 
       {/* Chatbot Widget */}
-      {user && view.name !== 'quiz' && <Chatbot />}
+      {isChatbotVisible && <Chatbot />}
     </div>
   );
 }

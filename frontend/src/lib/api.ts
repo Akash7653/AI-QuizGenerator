@@ -42,7 +42,7 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  register: async (data: { name: string; email: string; password: string; role: string }) => {
+  register: async (data: { username: string; email: string; password: string; role: string }) => {
     const response = await api.post('/auth/register', data);
     return response.data;
   },
@@ -68,7 +68,7 @@ export const authAPI = {
     return response.data;
   },
   
-  updateProfile: async (data: { name?: string; email?: string; profile_image?: string }) => {
+  updateProfile: async (data: { username?: string; email?: string; profile_image?: string }) => {
     const response = await api.put('/auth/profile', data);
     return response.data;
   },

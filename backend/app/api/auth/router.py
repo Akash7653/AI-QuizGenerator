@@ -49,8 +49,9 @@ async def login(
 ):
     """Login user and return user data (session-based auth)."""
     auth_service = AuthService(db)
-    
-    user = auth_service.authenticate_user(form_data.username, form_data.password)
+
+    identifier = form_data.username.strip()
+    user = auth_service.authenticate_user(identifier, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

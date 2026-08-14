@@ -55,24 +55,36 @@ class AuthService:
     
     def register_user(self, user_data: UserCreate) -> User:
         """Register a new user."""
-        # Check if user already exists
+        username = getattr(user_data, 'username', None) or getattr(user_data, 'name', None)
+        if not username:
+            raise ValueError("Username is required")
+
         existing_user = self.user_repository.get_by_email(user_data.email)
         if existing_user:
             raise ValueError("User with this email already exists")
-        
-        # Hash password
+
+        existing_username = self.user_repository.get_by_username(username)
+        if existing_username:
+            raise ValueError("Username is already taken")
+
         hashed_password = self.get_password_hash(user_data.password)
-        
-        # Create user
-        user_dict = user_data.dict()
+
+        user_dict = user_data.model_dump()
+        user_dict['username'] = username
         user_dict['password'] = hashed_password
-        
+
         user = self.user_repository.create(user_dict)
         return user
     
-    def authenticate_user(self, email: str, password: str) -> Optional[User]:
-        """Authenticate user with email and password."""
-        user = self.user_repository.get_by_email(email)
+    def authenticate_user(self, identifier: str, password: str) -> Optional[User]:
+        """Authenticate a user by either email or username."""
+        user = None
+        if identifier and '@' in identifier:
+            user = self.user_repository.get_by_email(identifier)
+        if user is None:
+            user = self.user_repository.get_by_username(identifier)
+        if user is None:
+            user = self.user_repository.get_by_email(identifier)
         if not user:
             return None
         if not self.verify_password(password, user.password):
@@ -114,8 +126,13 @@ class AuthService:
         user = self.user_repository.get_by_id(user_id)
         if not user:
             return None
-        
-        update_data = user_data.dict(exclude_unset=True)
+
+        update_data = user_data.model_dump(exclude_unset=True)
+        if 'username' in update_data and update_data['username']:
+            existing_username = self.user_repository.get_by_username(update_data['username'])
+            if existing_username and existing_username.id != user_id:
+                raise ValueError("Username is already taken")
+
         if 'email' in update_data and update_data['email']:
             return self.user_repository.update_email(user_id, str(update_data['email']))
         return self.user_repository.update(user, update_data)

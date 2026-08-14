@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 from app.database.models.user import UserRole
@@ -6,16 +6,25 @@ from app.database.models.user import UserRole
 
 class UserBase(BaseModel):
     """Base user schema."""
-    name: str = Field(..., min_length=2, max_length=100)
+    username: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     role: UserRole = UserRole.STUDENT
+
+    @model_validator(mode='before')
+    @classmethod
+    def coerce_legacy_name(cls, values):
+        if isinstance(values, dict):
+            if 'username' not in values and 'name' in values:
+                values['username'] = values['name']
+        return values
 
 
 class UserCreate(UserBase):
     """User registration schema."""
     password: str = Field(..., min_length=8, max_length=72)
-    
-    @validator('password')
+
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if len(v.encode('utf-8')) > 72:
             raise ValueError('Password cannot be longer than 72 bytes; bcrypt truncates longer values and fails')
@@ -30,15 +39,34 @@ class UserCreate(UserBase):
 
 class UserLogin(BaseModel):
     """User login schema."""
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
     password: str
+
+    @model_validator(mode='before')
+    @classmethod
+    def normalize_login_fields(cls, values):
+        if isinstance(values, dict):
+            if values.get('username') is None and values.get('email') is None and values.get('name') is not None:
+                values['username'] = values['name']
+            if values.get('email') is None and values.get('username') is not None and '@' in values['username']:
+                values['email'] = values['username']
+        return values
 
 
 class UserUpdate(BaseModel):
     """User update schema."""
-    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    username: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None
     profile_image: Optional[str] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def coerce_legacy_name(cls, values):
+        if isinstance(values, dict):
+            if 'username' not in values and 'name' in values:
+                values['username'] = values['name']
+        return values
 
 
 class EmailUpdate(BaseModel):
@@ -49,7 +77,7 @@ class EmailUpdate(BaseModel):
 class UserResponse(BaseModel):
     """User response schema."""
     id: int
-    name: str
+    username: str
     email: str
     role: UserRole
     profile_image: Optional[str] = None
@@ -57,7 +85,15 @@ class UserResponse(BaseModel):
     is_verified: bool
     created_at: datetime
     updated_at: datetime
-    
+
+    @model_validator(mode='before')
+    @classmethod
+    def coerce_legacy_name(cls, values):
+        if isinstance(values, dict):
+            if 'username' not in values and 'name' in values:
+                values['username'] = values['name']
+        return values
+
     class Config:
         from_attributes = True
 
@@ -84,8 +120,9 @@ class ResetPassword(BaseModel):
     """Reset password schema."""
     token: str
     new_password: str = Field(..., min_length=8, max_length=72)
-    
-    @validator('new_password')
+
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v.encode('utf-8')) > 72:
             raise ValueError('Password cannot be longer than 72 bytes; bcrypt truncates longer values and fails')

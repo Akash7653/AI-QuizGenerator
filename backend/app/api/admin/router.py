@@ -69,7 +69,7 @@ async def get_all_users(
     return [
         UserManagementResponse(
             id=user.id,
-            name=user.name,
+            username=user.username,
             email=user.email,
             role=user.role.value,
             is_active=user.is_active,

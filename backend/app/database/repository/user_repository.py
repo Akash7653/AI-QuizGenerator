@@ -15,9 +15,13 @@ class UserRepository(BaseRepository[User]):
         """Get user by email."""
         return self.db.query(User).filter(User.email == email).first()
     
+    def get_by_username(self, username: str) -> Optional[User]:
+        """Get user by username."""
+        return self.db.query(User).filter(User.username == username).first()
+
     def get_by_name(self, name: str) -> Optional[User]:
-        """Get user by name."""
-        return self.db.query(User).filter(User.name == name).first()
+        """Backward-compatible alias for older callers."""
+        return self.get_by_username(name)
     
     def get_active_users(self, skip: int = 0, limit: int = 100) -> List[User]:
         """Get all active users."""
@@ -32,11 +36,11 @@ class UserRepository(BaseRepository[User]):
         return self.db.query(User).filter(User.is_verified == True).offset(skip).limit(limit).all()
     
     def search_users(self, query: str, skip: int = 0, limit: int = 100) -> List[User]:
-        """Search users by name or email."""
+        """Search users by username or email."""
         search_pattern = f"%{query}%"
         return self.db.query(User).filter(
             or_(
-                User.name.ilike(search_pattern),
+                User.username.ilike(search_pattern),
                 User.email.ilike(search_pattern)
             )
         ).offset(skip).limit(limit).all()

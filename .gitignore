@@ -37,3 +37,19 @@ __pycache__/
 # Python virtual environment
 .venv/
 venv/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment
+.env
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Vite
+.vite/

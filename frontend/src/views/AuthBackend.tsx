@@ -23,7 +23,7 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
   const [errorPulseKey, setErrorPulseKey] = useState(0);
   
   const [signInData, setSignInData] = useState({ email: '', password: '' });
-  const [signUpData, setSignUpData] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'student' });
+  const [signUpData, setSignUpData] = useState({ username: '', email: '', password: '', confirmPassword: '', role: 'student' });
   const [formError, setFormError] = useState<string | null>(null);
   const [successMode, setSuccessMode] = useState<'signin' | 'signup' | null>(null);
   
@@ -101,11 +101,11 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const name = signUpData.name.trim();
+    const username = signUpData.username.trim();
     const email = signUpData.email.trim();
     setFormError(null);
 
-    if (!name || !email || !signUpData.password || !signUpData.confirmPassword) {
+    if (!username || !email || !signUpData.password || !signUpData.confirmPassword) {
       setErrorPulseKey((prev) => prev + 1);
       setFormError('Oops 😅 Please fill in all required fields.');
       return;
@@ -145,7 +145,7 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
     
     setIsLoading(true);
     
-    const result = await signUp(name, email, signUpData.password, signUpData.role);
+    const result = await signUp(username, email, signUpData.password, signUpData.role);
     
     if (result.success) {
       setSuccessMode('signup');
@@ -388,13 +388,13 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
                 <form onSubmit={handleSignUp} noValidate className="space-y-3.5">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="signup-name" className="text-xs uppercase tracking-wide text-muted-foreground">Full Name</Label>
+                      <Label htmlFor="signup-username" className="text-xs uppercase tracking-wide text-muted-foreground">Username</Label>
                       <Input
-                        id="signup-name"
+                        id="signup-username"
                         type="text"
-                        placeholder="John Doe"
-                        value={signUpData.name}
-                        onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
+                        placeholder="johndoe"
+                        value={signUpData.username}
+                        onChange={(e) => setSignUpData({ ...signUpData, username: e.target.value })}
                         className="h-10 rounded-xl border-border/70 bg-background/80 focus-visible:ring-primary/40"
                         required
                       />

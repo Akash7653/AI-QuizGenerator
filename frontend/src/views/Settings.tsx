@@ -21,7 +21,7 @@ import { authAPI } from '@/lib/api';
 interface SettingsProps {
   user: {
     id?: number;
-    name?: string;
+    username?: string;
     email?: string;
     role?: string;
     is_verified?: boolean;
@@ -32,7 +32,7 @@ interface SettingsProps {
 export function Settings({ user, onBack }: SettingsProps) {
   const { theme } = useThemeMode();
   const { updateProfile, changeEmail } = useAuthBackend();
-  const [name, setName] = useState(user?.name ?? '');
+  const [username, setUsername] = useState(user?.username ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [password, setPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -52,13 +52,13 @@ export function Settings({ user, onBack }: SettingsProps) {
   const handleProfileSave = async () => {
     setError(null);
     setFeedback(null);
-    if (!name.trim()) {
-      setError('Name is required.');
+    if (!username.trim()) {
+      setError('Username is required.');
       return;
     }
 
     setIsSaving(true);
-    const result = await updateProfile({ name: name.trim() });
+    const result = await updateProfile({ username: username.trim() });
     setIsSaving(false);
 
     if (result.success) {
@@ -168,8 +168,8 @@ export function Settings({ user, onBack }: SettingsProps) {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Full name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your name" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Username</label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" />
             </div>
 
             <div className="space-y-2">

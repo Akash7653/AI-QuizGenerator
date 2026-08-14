@@ -128,7 +128,7 @@ class AnalyticsRepository(BaseRepository[Analytics]):
         
         results = self.db.query(
             Analytics,
-            User.name,
+            User.username,
             User.email
         ).join(
             User,
@@ -136,15 +136,15 @@ class AnalyticsRepository(BaseRepository[Analytics]):
         ).order_by(
             Analytics.overall_accuracy.desc()
         ).offset(skip).limit(limit).all()
-        
+
         return [
             {
                 "user_id": analytics.user_id,
-                "name": name,
+                "username": username,
                 "email": email,
                 "overall_accuracy": analytics.overall_accuracy,
                 "total_quizzes_attempted": analytics.total_quizzes_attempted,
                 "total_questions_attempted": analytics.total_questions_attempted
             }
-            for analytics, name, email in results
+            for analytics, username, email in results
         ]

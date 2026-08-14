@@ -21,7 +21,7 @@ class SystemHealthResponse(BaseModel):
 class UserManagementResponse(BaseModel):
     """User management response schema."""
     id: int
-    name: str
+    username: str
     email: str
     role: str
     is_active: bool

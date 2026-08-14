@@ -210,8 +210,12 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onLearning, onRecomme
               transition={{ delay: 0.2 }}
             >
               <div className={cn('relative mb-4 flex items-center', isCollapsed ? 'justify-center' : 'gap-3')}>
-                <div className={cn('flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-purple-500/20', isCollapsed ? 'h-11 w-11' : 'h-12 w-12')}>
-                  <Brain className={cn(isCollapsed ? 'h-5 w-5' : 'h-6 w-6')} />
+                <div className={cn('relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-purple-500/20', isCollapsed ? 'h-11 w-11' : 'h-12 w-12')}>
+                  <img
+                    src="/images/WhatsApp_Image_2026-08-13_at_11.40.48_AM.jpeg"
+                    alt="QuizGen logo"
+                    className={cn('h-full w-full object-cover', isCollapsed ? 'scale-110' : 'scale-100')}
+                  />
                 </div>
 
                 {!isCollapsed && (
