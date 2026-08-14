@@ -57,3 +57,4 @@ python-json-logger
 
 gunicorn
 psutil
+itsdangerous==2.2.0
