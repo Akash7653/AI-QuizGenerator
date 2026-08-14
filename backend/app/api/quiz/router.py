@@ -288,6 +288,9 @@ async def quick_save_quiz(
         
         attempt = quiz_service.quiz_attempt_repository.create(attempt_data)
         db.commit()
+
+        analytics_service = AnalyticsService(db)
+        analytics_service.update_analytics_after_quiz(attempt)
         
         return {
             "id": attempt.id,

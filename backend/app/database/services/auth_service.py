@@ -116,7 +116,15 @@ class AuthService:
             return None
         
         update_data = user_data.dict(exclude_unset=True)
+        if 'email' in update_data and update_data['email']:
+            return self.user_repository.update_email(user_id, str(update_data['email']))
         return self.user_repository.update(user, update_data)
+
+    def change_email(self, user_id: int, new_email: str) -> Optional[User]:
+        """Change the current user's email address."""
+        if self.user_repository.get_by_email(new_email):
+            raise ValueError("User with this email already exists")
+        return self.user_repository.update_email(user_id, new_email)
     
     def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
         """Change user password."""

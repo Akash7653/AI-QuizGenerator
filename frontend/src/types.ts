@@ -58,5 +58,10 @@ export type View =
   | { name: 'auth' }
   | { name: 'dashboard' }
   | { name: 'create' }
+  | { name: 'documents' }
+  | { name: 'analytics' }
+  | { name: 'learning' }
+  | { name: 'recommendations' }
+  | { name: 'settings' }
   | { name: 'quiz'; config: QuizConfig; questions: QuizQuestion[] }
   | { name: 'results'; result: QuizResult };

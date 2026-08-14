@@ -154,13 +154,25 @@ export function useAuthBackend() {
     }
   }, []);
 
-  const updateProfile = useCallback(async (data: { name?: string; profile_image?: string }) => {
+  const updateProfile = useCallback(async (data: { name?: string; email?: string; profile_image?: string }) => {
     try {
       const updatedUser = await authAPI.updateProfile(data);
       setUser(updatedUser);
       return { success: true };
     } catch (err: any) {
       const message = parseApiError(err, 'Profile update failed.');
+      setError(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  const changeEmail = useCallback(async (newEmail: string) => {
+    try {
+      const updatedUser = await authAPI.changeEmail(newEmail);
+      setUser(updatedUser);
+      return { success: true };
+    } catch (err: any) {
+      const message = parseApiError(err, 'Email update failed.');
       setError(message);
       return { success: false, error: message };
     }
@@ -174,6 +186,7 @@ export function useAuthBackend() {
     signUp,
     signOut,
     updateProfile,
+    changeEmail,
     refreshAuth: checkAuth,
   };
 }

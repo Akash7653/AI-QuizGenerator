@@ -85,6 +85,16 @@ class UserRepository(BaseRepository[User]):
             self.db.commit()
             self.db.refresh(user)
         return user
+
+    def update_email(self, user_id: int, new_email: str) -> Optional[User]:
+        """Update a user's email address."""
+        user = self.get_by_id(user_id)
+        if user:
+            user.email = new_email
+            user.is_verified = False
+            self.db.commit()
+            self.db.refresh(user)
+        return user
     
     def get_user_stats(self) -> Dict[str, Any]:
         """Get user statistics."""

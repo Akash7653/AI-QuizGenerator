@@ -337,6 +337,28 @@ class QuizService:
         """Get all quiz attempts for a user."""
         return self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
     
+    def get_user_attempts_with_quiz_details(self, user_id: int, skip: int = 0, limit: int = 100) -> list:
+        """Get quiz attempt history with quiz details for dashboard."""
+        attempts = self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
+        history = []
+        for attempt in attempts:
+            quiz = self.quiz_repository.get_by_id(attempt.quiz_id)
+            if quiz:
+                history.append({
+                    'id': attempt.id,
+                    'quiz_id': attempt.quiz_id,
+                    'topic': quiz.title,
+                    'total_score': attempt.total_score,
+                    'percentage': attempt.percentage,
+                    'total_questions': quiz.total_questions,
+                    'time_taken': attempt.time_taken,
+                    'completed_at': attempt.completed_at,
+                    'difficulty': 'Medium',  # Default, could be stored in quiz model
+                    'question_type': 'Mixed',  # Default
+                    'source_type': 'topic',  # Could be determined from quiz source
+                })
+        return history
+    
     def delete_quiz(self, quiz_id: int, user_id: int) -> bool:
         """Delete a quiz."""
         quiz = self.quiz_repository.get_by_id(quiz_id)

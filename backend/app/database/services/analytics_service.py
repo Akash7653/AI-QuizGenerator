@@ -38,41 +38,89 @@ class AnalyticsService:
                 "strong_areas": []
             }
             analytics = self.analytics_repository.create(analytics_data)
-        
+
+        # Backfill analytics from real historical attempts so already-existing users
+        # with prior quiz data are not stuck at zero values after login.
+        self._sync_analytics_from_attempts(user_id, analytics)
         return analytics
+
+    def _sync_analytics_from_attempts(self, user_id: int, analytics: Analytics) -> None:
+        """Recalculate analytics from the user's completed quiz attempts."""
+        attempts = self.quiz_attempt_repository.get_by_user_id(user_id, 0, 500)
+        if not attempts:
+            return
+
+        total_quizzes = len(attempts)
+        total_questions = sum(max(int(attempt.max_score or attempt.total_score or 0), 0) for attempt in attempts)
+        total_correct = sum(int(attempt.correct_count or 0) for attempt in attempts)
+        total_wrong = sum(int(attempt.wrong_count or 0) for attempt in attempts)
+
+        topic_performance: Dict[str, Dict[str, Any]] = {}
+        for attempt in attempts:
+            if not attempt.answers:
+                continue
+            if attempt.quiz_id:
+                try:
+                    from app.database.repository import QuizRepository
+                    quiz_repo = QuizRepository(self.db)
+                    quiz_questions = quiz_repo.get_quiz_questions(attempt.quiz_id)
+                    for quiz_question in quiz_questions:
+                        question = quiz_question.question
+                        topic = question.topic or "general"
+                        if topic not in topic_performance:
+                            topic_performance[topic] = {"total_questions": 0, "correct_answers": 0, "accuracy": 0.0}
+
+                        topic_performance[topic]["total_questions"] += 1
+                        user_answer = attempt.answers.get(str(question.id)) if attempt.answers else None
+                        if user_answer and user_answer == question.correct_answer:
+                            topic_performance[topic]["correct_answers"] += 1
+                except Exception:
+                    continue
+
+        if topic_performance:
+            for topic, stats in topic_performance.items():
+                total = stats["total_questions"]
+                correct = stats["correct_answers"]
+                stats["accuracy"] = (correct / total * 100) if total > 0 else 0.0
+            analytics.topic_performance = topic_performance
+        else:
+            analytics.topic_performance = analytics.topic_performance or {}
+
+        if total_questions > 0:
+            analytics.total_questions_attempted = total_questions
+            analytics.total_correct = total_correct
+            analytics.total_wrong = total_wrong
+            analytics.total_quizzes_attempted = total_quizzes
+            analytics.overall_accuracy = (total_correct / (total_correct + total_wrong) * 100) if (total_correct + total_wrong) > 0 else 0.0
+            analytics.weak_areas = [
+                topic for topic, data in (analytics.topic_performance or {}).items()
+                if data.get("accuracy", 0) < 60 and data.get("total_questions", 0) >= 3
+            ]
+            analytics.strong_areas = [
+                topic for topic, data in (analytics.topic_performance or {}).items()
+                if data.get("accuracy", 0) > 80 and data.get("total_questions", 0) >= 3
+            ]
+            self.db.commit()
+            self.db.refresh(analytics)
     
     def update_analytics_after_quiz(self, attempt: QuizAttempt) -> Analytics:
         """Update analytics after quiz completion."""
         logger.info(f"Updating analytics for user {attempt.user_id} after quiz {attempt.quiz_id}")
-        
+
+        # Recalculate from the actual attempt history so existing users are not
+        # double-counted while still keeping newly-finished attempts in sync.
         analytics = self.get_user_analytics(attempt.user_id)
-        
-        # Update basic stats
-        analytics.total_quizzes_attempted += 1
-        analytics.total_correct += attempt.correct_count
-        analytics.total_wrong += attempt.wrong_count
-        analytics.total_questions_attempted += (
-            attempt.correct_count + attempt.wrong_count + attempt.skipped_count
-        )
-        
-        # Recalculate accuracy
-        total_answered = analytics.total_correct + analytics.total_wrong
-        if total_answered > 0:
-            analytics.overall_accuracy = (analytics.total_correct / total_answered) * 100
-        
-        # Update learning curve
-        self._update_learning_curve(analytics, attempt)
-        
-        # Update topic and difficulty performance
-        self._update_topic_performance(analytics, attempt)
-        self._update_difficulty_performance(analytics, attempt)
-        
-        # Update weak and strong areas
-        self._update_weak_strong_areas(analytics)
-        
+
+        # Add the latest performance point without duplicating the finished quiz.
+        if not analytics.learning_curve or analytics.learning_curve[-1].get("quiz_id") != attempt.quiz_id:
+            self._update_learning_curve(analytics, attempt)
+
+        if analytics.topic_performance:
+            self._update_weak_strong_areas(analytics)
+
         self.db.commit()
         self.db.refresh(analytics)
-        
+
         return analytics
     
     def _update_learning_curve(self, analytics: Analytics, attempt: QuizAttempt):

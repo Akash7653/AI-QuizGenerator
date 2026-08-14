@@ -35,7 +35,13 @@ class UserLogin(BaseModel):
 class UserUpdate(BaseModel):
     """User update schema."""
     name: Optional[str] = Field(None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
     profile_image: Optional[str] = None
+
+
+class EmailUpdate(BaseModel):
+    """Email change request schema."""
+    new_email: EmailStr
 
 
 class UserResponse(BaseModel):

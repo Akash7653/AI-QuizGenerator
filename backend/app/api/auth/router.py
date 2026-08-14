@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database.connection import get_db
 from app.database.schemas.user import (
-    UserCreate, UserLogin, UserResponse, UserUpdate, Token,
+    UserCreate, UserLogin, UserResponse, UserUpdate, EmailUpdate, Token,
     TokenPayload, ForgotPassword, ResetPassword, VerifyEmail
 )
 from app.database.services.auth_service import AuthService
@@ -98,13 +98,46 @@ async def update_profile(
     """Update current user profile."""
     auth_service = AuthService(db)
     
-    updated_user = auth_service.update_user(current_user.id, user_data)
+    try:
+        updated_user = auth_service.update_user(current_user.id, user_data)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
     if not updated_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
     
+    return updated_user
+
+
+@router.put("/profile/email", response_model=UserResponse)
+async def update_email(
+    email_data: EmailUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change the authenticated user's email address."""
+    auth_service = AuthService(db)
+
+    try:
+        updated_user = auth_service.change_email(current_user.id, email_data.new_email)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
     return updated_user
 
 

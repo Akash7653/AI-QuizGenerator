@@ -25,10 +25,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     console.log(`[API] Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+    console.log(`[API] Response data:`, response.data);
     return response;
   },
   async (error) => {
-    console.error(`[API] Error: ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status}`, error.response?.data);
+    const errorMsg = `[API] Error: ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status}`;
+    console.error(errorMsg, error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -60,8 +62,98 @@ export const authAPI = {
     return response.data;
   },
   
-  updateProfile: async (data: { name?: string; profile_image?: string }) => {
+  updateProfile: async (data: { name?: string; email?: string; profile_image?: string }) => {
     const response = await api.put('/auth/profile', data);
+    return response.data;
+  },
+
+  changeEmail: async (newEmail: string) => {
+    const response = await api.put('/auth/profile/email', { new_email: newEmail });
+    return response.data;
+  },
+
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post('/auth/reset-password', { token, new_password: newPassword });
+    return response.data;
+  },
+};
+
+export const quizAPI = {
+  getHistory: async (skip = 0, limit = 100) => {
+    const response = await api.get(`/quiz/history?skip=${skip}&limit=${limit}`);
+    return response.data;
+  },
+  
+  submitQuiz: async (data: { quiz_id: number; answers: Record<string, string>; time_taken: number }) => {
+    const response = await api.post('/quiz/submit', data);
+    return response.data;
+  },
+
+  quickSaveQuiz: async (data: {
+    topic: string;
+    source_type: string;
+    score: number;
+    total_questions: number;
+    difficulty: string;
+    question_type: string;
+    time_taken: number;
+  }) => {
+    const response = await api.post('/quiz/quick-save', data);
+    return response.data;
+  },
+
+  generateQuiz: async (data: {
+    document_id: number;
+    mode: string;
+    total_questions: number;
+    difficulty?: string;
+    question_types?: string[];
+  }) => {
+    const response = await api.post('/quiz/generate', data);
+    return response.data;
+  },
+
+  generateFromTopic: async (data: {
+    topic: string;
+    name?: string;
+    source_type?: string;
+    difficulty?: string;
+    total_questions?: number;
+    question_type?: string;
+    time_limit?: number;
+  }) => {
+    const response = await api.post('/quiz/generate-topic', data);
+    return response.data;
+  },
+  
+  createQuiz: async (data: {
+    title: string;
+    description?: string;
+    mode: string;
+    total_questions: number;
+    question_ids?: number[];
+  }) => {
+    const response = await api.post('/quiz/create', data);
+    return response.data;
+  },
+  
+  startQuiz: async (quizId: number) => {
+    const response = await api.post('/quiz/start', { quiz_id: quizId });
+    return response.data;
+  },
+  
+  getQuizResult: async (attemptId: number) => {
+    const response = await api.get(`/quiz/result/${attemptId}`);
+    return response.data;
+  },
+  
+  getQuizHistory: async (skip = 0, limit = 100) => {
+    const response = await api.get(`/quiz/history?skip=${skip}&limit=${limit}`);
     return response.data;
   },
 };
@@ -76,6 +168,11 @@ export const documentAPI = {
     const response = await api.post('/documents/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return response.data;
+  },
+
+  createTopicDocument: async (data: { topic: string; description?: string }) => {
+    const response = await api.post('/documents/topic', data);
     return response.data;
   },
   
@@ -96,50 +193,6 @@ export const documentAPI = {
   
   deleteDocument: async (documentId: number) => {
     const response = await api.delete(`/documents/${documentId}`);
-    return response.data;
-  },
-};
-
-export const quizAPI = {
-  generateQuiz: async (data: {
-    document_id: number;
-    mode: string;
-    total_questions: number;
-    difficulty?: string;
-    question_types?: string[];
-  }) => {
-    const response = await api.post('/quiz/generate', data);
-    return response.data;
-  },
-  
-  createQuiz: async (data: {
-    title: string;
-    description?: string;
-    mode: string;
-    total_questions: number;
-    question_ids?: number[];
-  }) => {
-    const response = await api.post('/quiz/create', data);
-    return response.data;
-  },
-  
-  startQuiz: async (quizId: number) => {
-    const response = await api.post('/quiz/start', { quiz_id: quizId });
-    return response.data;
-  },
-  
-  submitQuiz: async (attemptId: number, answers: Record<string, string>) => {
-    const response = await api.post('/quiz/submit', { attempt_id: attemptId, answers });
-    return response.data;
-  },
-  
-  getQuizResult: async (attemptId: number) => {
-    const response = await api.get(`/quiz/result/${attemptId}`);
-    return response.data;
-  },
-  
-  getQuizHistory: async (skip = 0, limit = 100) => {
-    const response = await api.get(`/quiz/history?skip=${skip}&limit=${limit}`);
     return response.data;
   },
 };

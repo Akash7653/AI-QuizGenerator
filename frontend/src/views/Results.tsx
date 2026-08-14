@@ -50,7 +50,7 @@ export function Results({ result, onDashboard, onNewQuiz, onRetry, onRecommended
   const visibleWrong = showAll ? wrongAnswers : wrongAnswers.slice(0, 3);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-none space-y-6 lg:min-h-[calc(100vh-5rem)]">
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={onDashboard} className="-ml-3 text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Dashboard</Button>
         <Badge variant="secondary">Quiz complete</Badge>

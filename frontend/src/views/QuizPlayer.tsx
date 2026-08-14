@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Clock3, FileText, Flag, Lightbulb, Send, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -102,20 +102,20 @@ export function QuizPlayer({ config, questions, onComplete, onExit }: Props) {
   if (!current) return null;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-none space-y-6 pb-24 lg:min-h-[calc(100vh-5rem)] lg:pb-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" onClick={onExit} className="-ml-3 text-muted-foreground">
           <ArrowLeft className="mr-2 h-4 w-4" /> Exit quiz
         </Button>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">{config.topic}</Badge>
-          <Badge variant="outline">{config.difficulty}</Badge>
-          {config.sourceType === 'pdf' && <Badge variant="outline"><FileText className="mr-1 h-3 w-3" /> PDF grounded</Badge>}
+          <Badge variant="secondary" className="rounded-full px-3 py-1">{config.topic}</Badge>
+          <Badge variant="outline" className="rounded-full px-3 py-1">{config.difficulty}</Badge>
+          {config.sourceType === 'pdf' && <Badge variant="outline" className="rounded-full px-3 py-1"><FileText className="mr-1 h-3 w-3" /> PDF grounded</Badge>}
         </div>
       </div>
 
-      <Card className="overflow-hidden border-primary/20 shadow-lg shadow-primary/5">
-        <div className="h-1.5 bg-muted"><motion.div className="h-full bg-primary" animate={{ width: `${progress}%` }} /></div>
+      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-background via-background to-primary/5 shadow-[0_28px_80px_rgba(99,102,241,0.10)]">
+        <div className="h-1.5 bg-muted"><motion.div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" animate={{ width: `${progress}%` }} /></div>
         <CardHeader className="space-y-4 pb-3">
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="font-semibold">Question {currentIndex + 1} <span className="font-normal text-muted-foreground">of {questions.length}</span></span>
@@ -125,60 +125,88 @@ export function QuizPlayer({ config, questions, onComplete, onExit }: Props) {
           </div>
           <Progress value={progress} className="h-2" />
         </CardHeader>
-        <CardContent className="space-y-7 pb-8 pt-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">{currentIndex + 1}</div>
-            <h1 className="text-xl font-bold leading-relaxed sm:text-2xl">{current.question}</h1>
-          </div>
 
-          <div className="space-y-3">
-            {current.type === 'short' ? (
-              <div className="space-y-2">
-                <Input
-                  value={currentAnswer}
-                  onChange={(event) => chooseAnswer(event.target.value)}
-                  placeholder="Type your answer here…"
-                  className="h-12 rounded-xl text-base"
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground">Keep it concise. Your answer will be checked against the key idea.</p>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current.id}
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -18, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            <CardContent className="space-y-7 pb-8 pt-5">
+              <div className="flex items-start gap-3">
+                <motion.div
+                  key={`badge-${currentIndex}`}
+                  initial={{ scale: 0.8, rotate: -8 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-sm font-bold text-primary"
+                >
+                  {currentIndex + 1}
+                </motion.div>
+                <h1 className="text-xl font-bold leading-relaxed sm:text-2xl">{current.question}</h1>
               </div>
-            ) : (
-              current.options?.map((option, index) => {
-                const selected = currentAnswer === option;
-                return (
-                  <motion.button
-                    key={option}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => chooseAnswer(option)}
-                    className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${selected ? 'border-primary bg-primary/10 shadow-sm' : 'border-border hover:border-primary/40 hover:bg-accent/40'}`}
-                  >
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold ${selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      {current.type === 'truefalse' ? (option === 'True' ? '✓' : '×') : String.fromCharCode(65 + index)}
-                    </span>
-                    <span className="text-sm font-medium">{option}</span>
-                    {selected && <Check className="ml-auto h-5 w-5 text-primary" />}
-                  </motion.button>
-                );
-              })
-            )}
-          </div>
 
-          {current.source && (
-            <div className="flex items-center gap-2 rounded-xl bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
-              <FileText className="h-3.5 w-3.5" /> Source reference: {current.source}
-            </div>
-          )}
+              <div className="space-y-3">
+                {current.type === 'short' ? (
+                  <div className="space-y-2">
+                    <motion.div layout>
+                      <Input
+                        value={currentAnswer}
+                        onChange={(event) => chooseAnswer(event.target.value)}
+                        placeholder="Type your answer here…"
+                        className="h-12 rounded-xl border-border/60 bg-background/90 text-base shadow-sm transition-all duration-200 focus-visible:ring-primary/50"
+                        autoFocus
+                      />
+                    </motion.div>
+                    <p className="text-xs text-muted-foreground">Keep it concise. Your answer will be checked against the key idea.</p>
+                  </div>
+                ) : (
+                  current.options?.map((option, index) => {
+                    const selected = currentAnswer === option;
+                    return (
+                      <motion.button
+                        key={option}
+                        whileHover={{ scale: 1.01, x: 2 }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => chooseAnswer(option)}
+                        className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all duration-200 ${selected ? 'border-primary bg-gradient-to-r from-primary/10 to-violet-500/10 shadow-md shadow-primary/10' : 'border-border/60 bg-background/70 hover:border-primary/40 hover:bg-accent/40'}`}
+                      >
+                        <motion.span
+                          animate={selected ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                          transition={{ duration: 0.25 }}
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                        >
+                          {current.type === 'truefalse' ? (option === 'True' ? '✓' : '×') : String.fromCharCode(65 + index)}
+                        </motion.span>
+                        <span className="text-sm font-medium">{option}</span>
+                        {selected && <Check className="ml-auto h-5 w-5 text-primary" />}
+                      </motion.button>
+                    );
+                  })
+                )}
+              </div>
 
-          <div className="flex flex-col-reverse justify-between gap-3 border-t border-border/60 pt-5 sm:flex-row">
-            <Button variant="outline" onClick={() => setCurrentIndex((index) => Math.max(index - 1, 0))} disabled={currentIndex === 0} className="rounded-xl">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-            </Button>
-            <Button onClick={next} className="rounded-xl shadow-md shadow-primary/20">
-              {currentIndex === questions.length - 1 ? <><Flag className="mr-2 h-4 w-4" /> Finish quiz</> : <>Next <ArrowRight className="ml-2 h-4 w-4" /></>}
-            </Button>
-          </div>
-        </CardContent>
+              {current.source && (
+                <div className="flex items-center gap-2 rounded-xl bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
+                  <FileText className="h-3.5 w-3.5" /> Source reference: {current.source}
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse justify-between gap-3 border-t border-border/60 pt-5 sm:flex-row">
+                <Button variant="outline" onClick={() => setCurrentIndex((index) => Math.max(index - 1, 0))} disabled={currentIndex === 0} className="rounded-xl">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button onClick={next} className="rounded-xl shadow-lg shadow-primary/25">
+                    {currentIndex === questions.length - 1 ? <><Flag className="mr-2 h-4 w-4" /> Finish quiz</> : <>Next <ArrowRight className="ml-2 h-4 w-4" /></>}
+                  </Button>
+                </motion.div>
+              </div>
+            </CardContent>
+          </motion.div>
+        </AnimatePresence>
       </Card>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -187,18 +215,29 @@ export function QuizPlayer({ config, questions, onComplete, onExit }: Props) {
       </div>
 
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md shadow-2xl">
-            <CardHeader><CardTitle>Submit your quiz?</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-              <p className="text-sm text-muted-foreground">You answered {answeredCount} of {questions.length} questions. Unanswered questions count as incorrect.</p>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowConfirm(false)}>Keep reviewing</Button>
-                <Button onClick={submit}><Send className="mr-2 h-4 w-4" /> Submit quiz</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm"
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 18 }}
+            animate={{ scale: 1, y: 0 }}
+            className="w-full max-w-md"
+          >
+            <Card className="border-primary/20 bg-gradient-to-br from-background via-background to-violet-500/10 shadow-[0_30px_90px_rgba(99,102,241,0.25)]">
+              <CardHeader><CardTitle>Submit your quiz?</CardTitle></CardHeader>
+              <CardContent className="space-y-5">
+                <p className="text-sm text-muted-foreground">You answered {answeredCount} of {questions.length} questions. Unanswered questions count as incorrect.</p>
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setShowConfirm(false)}>Keep reviewing</Button>
+                  <Button onClick={submit}><Send className="mr-2 h-4 w-4" /> Submit quiz</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );

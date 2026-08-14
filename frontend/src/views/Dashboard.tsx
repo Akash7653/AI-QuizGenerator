@@ -483,22 +483,35 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
 
       {/* Topic performance */}
       {stats.byTopic.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> Topic Performance</CardTitle>
-            <CardDescription>Accuracy breakdown by subject</CardDescription>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> Topic Performance</CardTitle>
+                <CardDescription>Subject-wise success rate</CardDescription>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Focus areas tracked
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {stats.byTopic.map((t, i) => (
               <motion.div
                 key={t.topic}
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: '100%' }}
                 transition={{ delay: i * 0.05 }}
-                className="space-y-1.5"
+                className="rounded-2xl border border-border/60 bg-background/40 p-3"
               >
-                <div className="flex items-center justify-between text-sm">
-                  <span className={`font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{t.topic}</span>
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-semibold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{t.topic}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${t.avg >= 70 ? 'bg-green-500/10 text-green-600 dark:text-green-300' : t.avg >= 50 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-300' : 'bg-red-500/10 text-red-600 dark:text-red-300'}`}>
+                      {t.avg >= 70 ? 'Strong' : t.avg >= 50 ? 'Improving' : 'Needs work'}
+                    </span>
+                  </div>
                   <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>{t.avg}% · {t.count} quiz{t.count > 1 ? 'es' : ''}</span>
                 </div>
                 <Progress value={t.avg} className={`h-2 ${t.avg >= 70 ? '[&>div]:bg-green-500' : t.avg >= 50 ? '[&>div]:bg-amber-500' : '[&>div]:bg-red-500'}`} />

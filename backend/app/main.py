@@ -13,6 +13,7 @@ from app.api.quiz.router import router as quiz_router
 from app.api.analytics.router import router as analytics_router
 from app.api.recommendation.router import router as recommendation_router
 from app.api.admin.router import router as admin_router
+from app.api.chatbot.router import router as chatbot_router
 from app.database.connection import engine
 from app.database.models.base import Base
 # Import all models to ensure they're registered with SQLAlchemy
@@ -53,6 +54,7 @@ app.include_router(quiz_router, prefix=settings.API_V1_PREFIX)
 app.include_router(analytics_router, prefix=settings.API_V1_PREFIX)
 app.include_router(recommendation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
+app.include_router(chatbot_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.on_event("startup")

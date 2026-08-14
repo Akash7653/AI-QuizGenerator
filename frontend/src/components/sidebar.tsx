@@ -56,6 +56,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     {
       icon: LayoutDashboard,
       label: 'Dashboard',
+      shortLabel: 'Home',
       id: 'dashboard',
       color: 'from-blue-500 to-blue-600',
       onClick: onDashboard,
@@ -64,6 +65,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     {
       icon: PlusSquare,
       label: 'Create Quiz',
+      shortLabel: 'Create',
       id: 'create',
       color: 'from-purple-500 to-purple-600',
       onClick: onCreate,
@@ -72,6 +74,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     {
       icon: FileText,
       label: 'Documents',
+      shortLabel: 'Docs',
       id: 'documents',
       color: 'from-cyan-500 to-sky-600',
       onClick: onDocuments ?? onDashboard,
@@ -80,6 +83,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     {
       icon: BarChart3,
       label: 'Analytics',
+      shortLabel: 'Stats',
       id: 'analytics',
       color: 'from-emerald-500 to-green-600',
       onClick: onAnalytics ?? onDashboard,
@@ -88,6 +92,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     {
       icon: BookOpen,
       label: 'Learning Path',
+      shortLabel: 'Learn',
       id: 'learning',
       color: 'from-orange-500 to-amber-600',
       onClick: onLearning ?? onDashboard,
@@ -96,6 +101,7 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
     {
       icon: Sparkles,
       label: 'Recommendations',
+      shortLabel: 'Recs',
       id: 'recommendations',
       color: 'from-pink-500 to-rose-600',
       onClick: onRecommendations ?? onDashboard,
@@ -129,53 +135,55 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
 
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-24 right-5 z-50 lg:hidden p-3 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ${isOpen ? 'hidden' : ''}`}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </motion.button>
-
+      {/* Mobile Navigation - Modern Bottom Navigation (Similar to YouTube, Amazon) */}
       <motion.nav
-        className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-between gap-2 rounded-[26px] border border-white/10 bg-slate-900/80 p-2 shadow-[0_20px_60px_rgba(15,23,42,0.55)] backdrop-blur-xl lg:hidden dark:bg-slate-950/90"
+        className="fixed inset-x-0 bottom-0 z-40 border-t lg:hidden"
+        style={{
+          borderColor: theme === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(229, 231, 235, 0.5)',
+          backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.97)',
+          backdropFilter: 'blur(10px)',
+        }}
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const active = currentView === item.id;
-          return (
-            <motion.button
-              key={item.id}
-              onClick={() => {
-                item.onClick();
-                setIsOpen(false);
-              }}
-              whileTap={{ scale: 0.95 }}
-              className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 text-[10px] font-semibold transition-all duration-200',
-                active
-                  ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                  : 'text-slate-300 hover:bg-white/5'
-              )}
-            >
-              <Icon size={18} />
-              <span className="leading-none">{item.label === 'Create Quiz' ? 'Create' : item.label}</span>
-            </motion.button>
-          );
-        })}
+        <div className="flex items-center justify-around gap-1 px-1 py-2 safe-area-inset-bottom">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const active = currentView === item.id;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => {
+                  item.onClick();
+                }}
+                whileTap={{ scale: 0.92 }}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 flex-1',
+                  active
+                    ? theme === 'dark'
+                      ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 text-blue-400'
+                      : 'bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600'
+                    : theme === 'dark'
+                      ? 'text-slate-400 hover:bg-white/5 hover:text-slate-300'
+                      : 'text-slate-600 hover:bg-slate-100'
+                )}
+              >
+                <Icon size={20} />
+                <span className="text-[11px] font-semibold leading-none">{item.shortLabel}</span>
+              </motion.button>
+            );
+          })}
+        </div>
       </motion.nav>
 
       {!isMobile && (
         <div className="hidden lg:block" />
       )}
 
+      {/* Desktop Sidebar - Hidden on Mobile */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !isMobile && (
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -381,15 +389,15 @@ export function Sidebar({ onDashboard, onCreate, onLogout, onDocuments, onAnalyt
         )}
       </AnimatePresence>
 
-      {/* Overlay for mobile */}
+      {/* Overlay for desktop sidebar (hidden on mobile) */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !isMobile && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className={`fixed inset-0 z-30 lg:hidden ${theme === 'dark' ? 'bg-black/30' : 'bg-white/20'}`}
+            className={`fixed inset-0 z-30 hidden lg:block ${theme === 'dark' ? 'bg-black/30' : 'bg-white/20'}`}
           />
         )}
       </AnimatePresence>

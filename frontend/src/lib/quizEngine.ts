@@ -1,12 +1,54 @@
 import type { Difficulty, QuizConfig, QuizQuestion, QuestionType } from '@/types';
 
 const TOPIC_SUGGESTIONS = [
-  'Physics', 'Machine Learning', 'Python', 'Java', 'SQL', 'Mathematics',
-  'Cloud Computing', 'Data Structures', 'Biology', 'Chemistry',
-  'World History', 'Economics', 'JavaScript', 'Algorithms', 'Statistics',
-  'Artificial Intelligence', 'Neural Networks', 'Operating Systems',
-  'Computer Networks', 'Databases', 'Linear Algebra', 'Calculus',
-  'Geography', 'Psychology', 'Philosophy',
+  // Core Programming
+  'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Kotlin', 'Swift',
+  
+  // Web Development
+  'React', 'Vue.js', 'Angular', 'Node.js', 'Express.js', 'Django', 'Flask', 'FastAPI', 'Next.js', 'NuxtJS',
+  'HTML', 'CSS', 'Tailwind CSS', 'Bootstrap', 'Webpack', 'Docker', 'Kubernetes',
+  
+  // Data Science & AI/ML
+  'Machine Learning', 'Deep Learning', 'Artificial Intelligence', 'Neural Networks',
+  'Data Analysis', 'Statistics', 'Pandas', 'NumPy', 'Scikit-learn', 'TensorFlow', 'PyTorch',
+  'Natural Language Processing', 'Computer Vision', 'Big Data', 'Spark', 'Hadoop',
+  
+  // Database & Backend
+  'SQL', 'NoSQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch',
+  'Microservices', 'API Design', 'GraphQL', 'REST API', 'Message Queues',
+  
+  // Cloud & DevOps
+  'Cloud Computing', 'AWS', 'Azure', 'Google Cloud', 'CI/CD', 'Git', 'Jenkins',
+  'Linux', 'System Design', 'Security', 'Networking',
+  
+  // Computer Science Fundamentals
+  'Data Structures', 'Algorithms', 'Operating Systems', 'Computer Networks',
+  'Databases', 'Distributed Systems', 'Concurrency', 'Design Patterns',
+  
+  // Mathematics & Logic
+  'Mathematics', 'Linear Algebra', 'Calculus', 'Discrete Mathematics',
+  'Probability', 'Logic', 'Number Theory', 'Geometry',
+  
+  // Science
+  'Physics', 'Chemistry', 'Biology', 'Quantum Mechanics', 'Electromagnetism',
+  'Thermodynamics', 'Organic Chemistry', 'Molecular Biology', 'Genetics',
+  
+  // Business & Economics
+  'Economics', 'Finance', 'Accounting', 'Business Management', 'Marketing',
+  'Entrepreneurship', 'Project Management', 'Data Science for Business',
+  
+  // History & Social Sciences
+  'World History', 'Geography', 'Psychology', 'Philosophy', 'Sociology',
+  'Political Science', 'Art History', 'Literature',
+  
+  // Modern Technologies
+  'Blockchain', 'Cryptocurrency', 'Web3', 'IoT', 'Embedded Systems',
+  'Mobile Development', 'Android', 'iOS', 'Flutter', 'React Native',
+  'Game Development', 'Unity', 'Unreal Engine',
+  
+  // Soft Skills
+  'Communication', 'Leadership', 'Time Management', 'Problem Solving',
+  'Critical Thinking', 'Creativity', 'Emotional Intelligence',
 ];
 
 export function getTopicSuggestions(): string[] {

@@ -107,6 +107,24 @@ class QuizAttemptResponse(BaseModel):
         from_attributes = True
 
 
+class QuizHistoryResponse(BaseModel):
+    """Quiz history response with quiz details."""
+    id: int
+    quiz_id: int
+    topic: str
+    total_score: float
+    percentage: float
+    total_questions: int
+    time_taken: int
+    completed_at: Optional[int]
+    difficulty: Optional[str] = "Medium"
+    question_type: str = "Mixed"
+    source_type: str = "topic"
+    
+    class Config:
+        from_attributes = True
+
+
 class QuizSubmissionRequest(BaseModel):
     """Quiz submission request schema."""
     attempt_id: int
@@ -119,3 +137,29 @@ class QuizResultResponse(BaseModel):
     question_results: List[dict]
     performance_analysis: dict
     recommendations: List[str]
+
+
+class QuickSaveQuizRequest(BaseModel):
+    """Quick save quiz results (for locally generated quizzes)."""
+    topic: str
+    source_type: str = "topic"  # 'topic', 'pdf', 'text', 'url'
+    score: int  # number of correct answers
+    total_questions: int
+    difficulty: str = "Medium"
+    question_type: str = "Mixed"
+    time_taken: int  # in seconds
+
+
+class QuickSaveQuizResponse(BaseModel):
+    """Quick save quiz response."""
+    id: int
+    topic: str
+    score: int
+    total_questions: int
+    percentage: float
+    time_taken: int
+    difficulty: str
+    completed_at: str
+    
+    class Config:
+        from_attributes = True

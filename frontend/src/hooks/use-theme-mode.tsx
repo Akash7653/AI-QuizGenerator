@@ -20,8 +20,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setThemeState(prefersDark ? 'dark' : 'light');
+    setThemeState('light');
   }, []);
 
   useEffect(() => {
