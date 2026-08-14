@@ -4,15 +4,22 @@ from app.database.connection import get_db
 from app.database.models.user import User
 from app.middleware.auth import get_current_user
 from pydantic import BaseModel
-import google.generativeai as genai
 from app.config.settings import settings
 from loguru import logger
+
+try:
+    import google.generativeai as genai
+except Exception:  # pragma: no cover - optional dependency
+    genai = None
 
 router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
 
 
 def _is_gemini_configured() -> bool:
     """Check whether a real Gemini API key is configured."""
+    if genai is None:
+        return False
+
     key = (settings.GEMINI_API_KEY or "").strip()
     placeholder_values = {
         "",
@@ -38,7 +45,7 @@ class ChatResponse(BaseModel):
     conversation_id: str | None = None
 
 
-@router.post("/message", response_model=ChatResponse)
+@router.post("/message")
 async def chat_message(
     request: ChatMessage,
     current_user: User = Depends(get_current_user),
@@ -55,10 +62,12 @@ async def chat_message(
     """
     if not _is_gemini_configured():
         logger.warning("Gemini chatbot requested but no valid API key is configured")
-        return ChatResponse(
-            response="Gemini is not configured yet. Add your real API key in backend/.env and restart the backend to enable AI chat.",
-            conversation_id=request.conversation_id,
-        )
+        return {
+            "success": False,
+            "message": "AI chatbot is unavailable because the Gemini SDK or API key is not configured on this server.",
+            "response": "Gemini is not configured yet. Add your real API key in backend/.env and restart the backend to enable AI chat.",
+            "conversation_id": request.conversation_id,
+        }
 
     try:
         genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -85,10 +94,12 @@ Always provide helpful, accurate information."""
                 conversation_id=request.conversation_id,
             )
 
-        return ChatResponse(
-            response="I couldn't generate a response. Please try again.",
-            conversation_id=request.conversation_id,
-        )
+        return {
+            "success": False,
+            "message": "AI generation failed while creating the chatbot response.",
+            "response": "I couldn't generate a response. Please try again.",
+            "conversation_id": request.conversation_id,
+        }
 
     except Exception as e:
         logger.exception("Chatbot generation failed")
@@ -98,10 +109,12 @@ Always provide helpful, accurate information."""
         else:
             user_message = "Sorry, I encountered an AI service error. Please try again in a moment."
 
-        return ChatResponse(
-            response=user_message,
-            conversation_id=request.conversation_id,
-        )
+        return {
+            "success": False,
+            "message": user_message,
+            "response": user_message,
+            "conversation_id": request.conversation_id,
+        }
 
 
 @router.get("/health")
@@ -109,6 +122,7 @@ async def chatbot_health():
     """Health check endpoint for chatbot service."""
     if not _is_gemini_configured():
         return {
+            "success": False,
             "status": "unhealthy",
             "configured": False,
             "message": "Gemini API key is missing or still set to the placeholder value."

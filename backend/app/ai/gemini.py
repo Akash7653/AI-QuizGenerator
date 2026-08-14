@@ -1,7 +1,11 @@
 from typing import Optional, Dict, Any, List
-import google.generativeai as genai
 from loguru import logger
 from app.config.settings import settings
+
+try:
+    import google.generativeai as genai
+except Exception:  # pragma: no cover - optional dependency
+    genai = None
 
 
 class GeminiClient:
@@ -9,6 +13,8 @@ class GeminiClient:
     
     def __init__(self):
         """Initialize Gemini client."""
+        if genai is None:
+            raise RuntimeError("Google Gemini SDK is not installed. Install requirements-ai.txt or the google-generativeai package.")
         try:
             genai.configure(api_key=settings.GEMINI_API_KEY)
             self.model = genai.GenerativeModel(settings.GEMINI_MODEL)

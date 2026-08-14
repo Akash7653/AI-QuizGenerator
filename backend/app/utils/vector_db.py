@@ -1,9 +1,18 @@
 from typing import List, Dict, Any, Optional, Tuple
-import numpy as np
-import faiss
 import pickle
 import os
 from loguru import logger
+
+try:
+    import numpy as np
+except Exception:  # pragma: no cover - optional dependency
+    np = None
+
+try:
+    import faiss
+except Exception:  # pragma: no cover - optional dependency
+    faiss = None
+
 from app.nlp.embedding import EmbeddingGenerator
 
 
@@ -15,12 +24,23 @@ class VectorDatabase:
         self.dimension = dimension
         self.index_type = index_type
         self.index = None
-        self.embedding_generator = EmbeddingGenerator()
+        self.embedding_generator = None
         self.documents = []  # Store document metadata
+
+        if np is None or faiss is None:
+            logger.warning("Vector database is unavailable because NumPy/FAISS is not installed. Install requirements-ai.txt to enable AI search.")
+            return
+
+        self.embedding_generator = EmbeddingGenerator()
         self._initialize_index()
     
     def _initialize_index(self):
         """Initialize FAISS index."""
+        if np is None or faiss is None:
+            logger.warning("FAISS index not initialized because required AI libraries are missing.")
+            self.index = None
+            return
+
         try:
             if self.index_type == "flat":
                 # Flat L2 index
@@ -44,12 +64,16 @@ class VectorDatabase:
     
     def add_embeddings(
         self,
-        embeddings: np.ndarray,
+        embeddings: Any,
         document_ids: List[int],
         chunk_indices: List[int],
         chunk_texts: List[str]
     ) -> bool:
         """Add embeddings to the index."""
+        if np is None or faiss is None or self.index is None:
+            logger.warning("Embedding add skipped because vector search is unavailable.")
+            return False
+
         try:
             # Ensure embeddings are in the right format
             if isinstance(embeddings, list):
@@ -83,6 +107,10 @@ class VectorDatabase:
         document_id: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Search for similar chunks."""
+        if self.index is None or self.embedding_generator is None:
+            logger.warning("Vector search skipped because the vector store is unavailable.")
+            return []
+
         try:
             # Generate query embedding
             query_embedding = self.embedding_generator.generate_embedding(query)
@@ -119,10 +147,13 @@ class VectorDatabase:
     
     def search_by_embedding(
         self,
-        embedding: np.ndarray,
+        embedding: Any,
         top_k: int = 5
     ) -> List[Dict[str, Any]]:
         """Search using pre-computed embedding."""
+        if self.index is None:
+            return []
+
         try:
             if isinstance(embedding, list):
                 embedding = np.array(embedding, dtype=np.float32)
