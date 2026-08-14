@@ -74,15 +74,9 @@ async def startup_event():
     # Initialize MongoDB (disabled for now - causing startup issues)
     # Can be enabled later for hybrid PostgreSQL + MongoDB approach
     
-    # Initialize vector database (disabled due to memory issues)
-    try:
-        from app.utils.vector_db import VectorStore
-        vector_store = VectorStore()
-        vector_store.get_or_create_index("default")
-        logger.info("Vector database initialized")
-    except Exception as e:
-        logger.warning(f"Vector database initialization failed: {str(e)}")
-        logger.info("Application will continue without vector database")
+    # Initialize vector database lazily when needed to keep startup memory usage low
+    # on Render Free.
+    logger.info("Vector database is lazy-loaded on demand to reduce memory usage at startup")
     
     # Test cache connection
     try:
