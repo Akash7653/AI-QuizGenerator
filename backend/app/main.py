@@ -41,7 +41,15 @@ app = FastAPI(
 setup_cors(app)
 
 # Add session middleware (for session-based authentication)
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+# Cross-site auth between Vercel and Render requires the session cookie to persist
+# across different origins. We only force Secure in production so localhost remains usable.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    same_site="none",
+    https_only=settings.ENVIRONMENT.lower() != "development",
+    max_age=86400,
+)
 
 # Add custom middleware
 app.add_middleware(LoggingMiddleware)

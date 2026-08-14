@@ -43,8 +43,8 @@ async def register(
 
 @router.post("/login", response_model=UserResponse)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    request: Request = None,
     db: Session = Depends(get_db)
 ):
     """Login user and return user data (session-based auth)."""

@@ -44,11 +44,12 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
 
   const isPasswordStrong = (password: string) => {
     // Mirror backend policy to prevent avoidable 422 errors.
-    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,100}$/.test(password);
+    const byteLength = new TextEncoder().encode(password).length;
+    return byteLength <= 72 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,72}$/.test(password);
   };
 
   const passwordChecks = {
-    length: signUpData.password.length >= 8,
+    length: signUpData.password.length >= 8 && new TextEncoder().encode(signUpData.password).length <= 72,
     upper: /[A-Z]/.test(signUpData.password),
     lower: /[a-z]/.test(signUpData.password),
     number: /\d/.test(signUpData.password),
@@ -130,7 +131,9 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
 
     if (!isPasswordStrong(signUpData.password)) {
       setErrorPulseKey((prev) => prev + 1);
-      const message = 'Password must be 8+ characters and include uppercase, lowercase, and a number.';
+      const message = new TextEncoder().encode(signUpData.password).length > 72
+        ? 'Password cannot be longer than 72 bytes for secure hashing.'
+        : 'Password must be 8+ characters and include uppercase, lowercase, and a number.';
       setFormError(message);
       toast({
         title: 'Weak password',
@@ -437,7 +440,7 @@ export function AuthBackend({ onGoHome, onAuthSuccess, user }: AuthBackendProps)
                       <p className="mb-2 text-xs font-medium text-muted-foreground">Password requirements</p>
                       <div className="grid gap-1 text-xs">
                         {[
-                          { label: 'At least 8 characters', ok: passwordChecks.length },
+                          { label: 'At least 8 characters and max 72 bytes', ok: passwordChecks.length },
                           { label: 'One uppercase letter', ok: passwordChecks.upper },
                           { label: 'One lowercase letter', ok: passwordChecks.lower },
                           { label: 'One number', ok: passwordChecks.number },

@@ -9,6 +9,8 @@ def setup_cors(app: FastAPI):
     origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
         "http://localhost:3000",
         "http://localhost:8000",
+        "https://ai-quiz-generator-orcin.vercel.app",
+        "https://ai-quiz-generator.vercel.app",
     ]
     
     print(f"[CORS] Configuring CORS with origins: {origins}")
@@ -16,6 +18,7 @@ def setup_cors(app: FastAPI):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,  # Required for session-based auth with cookies
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],

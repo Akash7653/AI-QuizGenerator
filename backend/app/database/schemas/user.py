@@ -13,10 +13,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """User registration schema."""
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(..., min_length=8, max_length=72)
     
     @validator('password')
     def validate_password(cls, v):
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Password cannot be longer than 72 bytes; bcrypt truncates longer values and fails')
         if not any(char.isupper() for char in v):
             raise ValueError('Password must contain at least one uppercase letter')
         if not any(char.islower() for char in v):
@@ -81,10 +83,12 @@ class ForgotPassword(BaseModel):
 class ResetPassword(BaseModel):
     """Reset password schema."""
     token: str
-    new_password: str = Field(..., min_length=8, max_length=100)
+    new_password: str = Field(..., min_length=8, max_length=72)
     
     @validator('new_password')
     def validate_password(cls, v):
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Password cannot be longer than 72 bytes; bcrypt truncates longer values and fails')
         if not any(char.isupper() for char in v):
             raise ValueError('Password must contain at least one uppercase letter')
         if not any(char.islower() for char in v):

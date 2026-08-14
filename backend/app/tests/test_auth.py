@@ -69,6 +69,22 @@ def test_register_user_weak_password(client):
     assert response.status_code == 422
 
 
+def test_register_user_password_too_long(client):
+    """Test user registration rejects passwords exceeding bcrypt's 72-byte limit."""
+    long_password = "A" * 80 + "b1C!"
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Test User",
+            "email": "test-long@example.com",
+            "password": long_password,
+            "role": "student"
+        }
+    )
+    assert response.status_code == 422
+    assert "72" in response.json()["detail"][0]["msg"]
+
+
 def test_login_user(client, db_session):
     """Test user login."""
     # First register a user
