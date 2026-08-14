@@ -17,6 +17,9 @@ import { fetchHistory, clearHistory, type HistoryRow } from '@/lib/supabase';
 import { getTopicSuggestions } from '@/lib/quizEngine';
 import type { QuizConfig, QuizQuestion } from '@/types';
 import { generateQuiz } from '@/lib/quizEngine';
+import { SkeletonLoader, StatSkeletonLoader, ChartSkeletonLoader } from '@/components/skeleton-loader';
+import { containerVariants, itemVariants } from '@/components/page-transition';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 
 interface Props {
   onNewQuiz: () => void;
@@ -88,23 +91,30 @@ function fmtTime(seconds: number): string {
 }
 
 export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
+  const { theme } = useThemeMode();
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+    console.log('[Dashboard] Mounting - fetching history...');
     fetchHistory()
       .then((data) => {
         if (!mounted) return;
+        console.log('[Dashboard] Fetched data length:', data.length);
+        console.log('[Dashboard] Fetched data:', data);
         // Always use the fetched data, even if empty (don't keep seed data)
         setRows(data);
       })
       .catch((error) => {
-        console.error('Failed to fetch quiz history:', error);
+        console.error('[Dashboard] Error fetching history:', error);
         // On error, show empty state instead of demo data
         if (mounted) setRows([]);
       })
-      .finally(() => mounted && setLoading(false));
+      .finally(() => {
+        console.log('[Dashboard] Fetch completed, setting loading to false');
+        mounted && setLoading(false);
+      });
     return () => { mounted = false; };
   }, []);
 
@@ -150,47 +160,147 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
 
   const suggestions = getTopicSuggestions().slice(0, 6);
 
+  if (loading) {
+    return (
+      <motion.div
+        className="space-y-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Hero skeleton */}
+        <div className={`h-40 rounded-3xl animate-pulse ${theme === 'dark' ? 'bg-gradient-to-r from-slate-700 to-slate-800' : 'bg-gradient-to-r from-blue-200 to-purple-200'}`} />
+
+        {/* Stats skeleton */}
+        <StatSkeletonLoader />
+
+        {/* Charts skeleton */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className={`lg:col-span-2 h-80 rounded-lg animate-pulse ${theme === 'dark' ? 'bg-gradient-to-r from-slate-700 to-slate-800' : 'bg-gradient-to-r from-blue-200 to-purple-200'}`} />
+          <div className={`h-80 rounded-lg animate-pulse ${theme === 'dark' ? 'bg-gradient-to-r from-slate-700 to-slate-800' : 'bg-gradient-to-r from-blue-200 to-purple-200'}`} />
+        </div>
+
+        {/* Recent and recommended skeleton */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className={`h-64 rounded-lg animate-pulse ${theme === 'dark' ? 'bg-gradient-to-r from-slate-700 to-slate-800' : 'bg-gradient-to-r from-blue-200 to-purple-200'}`} />
+          <div className={`h-64 rounded-lg animate-pulse ${theme === 'dark' ? 'bg-gradient-to-r from-slate-700 to-slate-800' : 'bg-gradient-to-r from-blue-200 to-purple-200'}`} />
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <motion.div
+      className="space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Hero */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        variants={itemVariants}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-accent/40 to-background p-6 sm:p-8"
+        className={`relative overflow-hidden rounded-[30px] border shadow-[0_30px_80px_rgba(59,130,246,0.14)] backdrop-blur-xl p-6 sm:p-8 ${
+          theme === 'dark'
+            ? 'border-blue-500/20 bg-gradient-to-br from-slate-900 via-blue-950/60 to-violet-950/50'
+            : 'border-blue-200/60 bg-gradient-to-br from-white via-blue-50 to-violet-50'
+        }`}
       >
-        <div className="absolute inset-0 bg-grid opacity-30" />
+        <motion.div
+          className="absolute inset-0 overflow-hidden pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <motion.div
+            className={`absolute top-0 right-0 h-80 w-80 rounded-full blur-3xl ${theme === 'dark' ? 'bg-cyan-500/15' : 'bg-cyan-400/20'}`}
+            animate={{ y: [0, -35, 0], x: [0, 30, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className={`absolute bottom-0 left-0 h-72 w-72 rounded-full blur-3xl ${theme === 'dark' ? 'bg-violet-500/15' : 'bg-violet-400/20'}`}
+            animate={{ y: [0, 35, 0], x: [0, -30, 0] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className={`absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl ${theme === 'dark' ? 'bg-pink-500/10' : 'bg-pink-300/20'}`}
+            animate={{ scale: [1, 1.12, 1] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.div>
+
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="text-sm font-semibold text-primary">Welcome back</span>
-            </div>
-            <h1 className="max-w-xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+            <motion.div
+              className="flex items-center gap-2"
+              animate={{ x: [0, 5, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Sparkles className={`h-5 w-5 ${theme === 'dark' ? 'text-cyan-400' : 'text-blue-600'}`} />
+              <span className={`text-sm font-semibold uppercase tracking-[0.18em] ${theme === 'dark' ? 'text-cyan-300' : 'text-blue-700'}`}>
+                Welcome back
+              </span>
+            </motion.div>
+
+            <h1 className={`max-w-xl text-3xl font-black tracking-tight sm:text-5xl bg-clip-text text-transparent ${
+              theme === 'dark'
+                ? 'bg-gradient-to-r from-cyan-300 via-blue-300 to-violet-300'
+                : 'bg-gradient-to-r from-blue-700 via-violet-700 to-pink-600'
+            }`}>
               Ready to learn something new today?
             </h1>
-            <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
+
+            <p className={`max-w-lg text-sm sm:text-base leading-7 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
               Generate a quiz from any topic or upload a PDF and let QuizGen create questions instantly.
             </p>
+
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button size="lg" onClick={onNewQuiz} className="h-11 rounded-xl text-base shadow-lg shadow-primary/30">
-                <Plus className="mr-2 h-5 w-5" /> Create New Quiz
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => startSuggestion('Machine Learning')} className="h-11 rounded-xl text-base">
-                <Zap className="mr-2 h-4 w-4" /> Quick Start: ML
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  size="lg"
+                  onClick={onNewQuiz}
+                  className="h-11 rounded-xl text-base shadow-[0_18px_45px_rgba(59,130,246,0.35)] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500"
+                >
+                  <Plus className="mr-2 h-5 w-5" /> Create New Quiz
+                </Button>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => startSuggestion('Machine Learning')}
+                  className={`h-11 rounded-xl text-base ${
+                    theme === 'dark'
+                      ? 'border-slate-600 hover:bg-slate-700/50'
+                      : 'border-slate-300 hover:bg-slate-100/50'
+                  }`}
+                >
+                  <Zap className="mr-2 h-4 w-4" /> Quick Start: ML
+                </Button>
+              </motion.div>
             </div>
           </div>
-          <div className="hidden shrink-0 sm:block">
-            <div className="relative flex h-32 w-32 items-center justify-center rounded-3xl bg-primary/10">
+
+          <motion.div
+            className="hidden shrink-0 sm:block"
+            animate={{ y: [0, -10, 0], rotate: [0, 2, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <div className={`relative flex h-32 w-32 items-center justify-center rounded-3xl border backdrop-blur ${
+              theme === 'dark'
+                ? 'border-blue-400/30 bg-gradient-to-br from-blue-500/20 to-purple-500/20'
+                : 'border-blue-300/30 bg-gradient-to-br from-blue-200/40 to-purple-200/40'
+            }`}>
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                className="absolute inset-0 rounded-3xl border-2 border-dashed border-primary/30"
+                className={`absolute inset-0 rounded-3xl border-2 border-dashed ${theme === 'dark' ? 'border-blue-400/30' : 'border-blue-300/30'}`}
               />
               <BrainIcon />
             </div>
-          </div>
+          </motion.div>
         </div>
       </motion.div>
 
@@ -388,44 +498,92 @@ export function Dashboard({ onNewQuiz, onStartQuiz }: Props) {
                 className="space-y-1.5"
               >
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{t.topic}</span>
-                  <span className="text-muted-foreground">{t.avg}% · {t.count} quiz{t.count > 1 ? 'es' : ''}</span>
+                  <span className={`font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{t.topic}</span>
+                  <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>{t.avg}% · {t.count} quiz{t.count > 1 ? 'es' : ''}</span>
                 </div>
-                <Progress value={t.avg} className={`h-2 ${t.avg >= 70 ? '[&>div]:bg-success' : t.avg >= 50 ? '[&>div]:bg-warning' : '[&>div]:bg-destructive'}`} />
+                <Progress value={t.avg} className={`h-2 ${t.avg >= 70 ? '[&>div]:bg-green-500' : t.avg >= 50 ? '[&>div]:bg-amber-500' : '[&>div]:bg-red-500'}`} />
               </motion.div>
             ))}
           </CardContent>
         </Card>
       )}
 
-      {loading && rows.length === 0 && (
-        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">Loading your history…</div>
+      {rows.length === 0 && !loading && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="mb-4"
+          >
+            <BookOpen className={`h-12 w-12 mx-auto ${theme === 'dark' ? 'text-slate-500' : 'text-slate-600'}`} />
+          </motion.div>
+          <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>No quizzes yet. Create your first quiz to get started!</p>
+        </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
 function StatCard({ icon: Icon, label, value, color, delay }: { icon: any; label: string; value: string | number; color: string; delay: number }) {
-  const colorMap: Record<string, string> = {
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-    accent: 'bg-accent text-accent-foreground',
+  const { theme } = useThemeMode();
+  
+  const colorMap: Record<string, { bg: string; bgLight: string; icon: string; iconLight: string; gradient: string }> = {
+    primary: { 
+      bg: 'from-blue-900/20 to-blue-800/20', 
+      bgLight: 'from-blue-100/40 to-blue-50/40',
+      icon: 'text-blue-400', 
+      iconLight: 'text-blue-600',
+      gradient: 'from-blue-500 to-blue-600' 
+    },
+    success: { 
+      bg: 'from-green-900/20 to-green-800/20', 
+      bgLight: 'from-green-100/40 to-green-50/40',
+      icon: 'text-green-400', 
+      iconLight: 'text-green-600',
+      gradient: 'from-green-500 to-green-600' 
+    },
+    warning: { 
+      bg: 'from-amber-900/20 to-amber-800/20', 
+      bgLight: 'from-amber-100/40 to-amber-50/40',
+      icon: 'text-amber-400', 
+      iconLight: 'text-amber-600',
+      gradient: 'from-amber-500 to-amber-600' 
+    },
+    accent: { 
+      bg: 'from-purple-900/20 to-purple-800/20', 
+      bgLight: 'from-purple-100/40 to-purple-50/40',
+      icon: 'text-purple-400', 
+      iconLight: 'text-purple-600',
+      gradient: 'from-purple-500 to-purple-600' 
+    },
   };
+
+  const colors = colorMap[color];
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ y: -4, scale: 1.02 }}
       transition={{ delay, duration: 0.3 }}
     >
-      <Card className="overflow-hidden">
-        <CardContent className="flex items-center gap-3 p-4">
-          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${colorMap[color]}`}>
-            <Icon className="h-5 w-5" />
-          </div>
+      <Card className={`overflow-hidden border shadow-[0_14px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(74,90,239,0.12)] ${
+        theme === 'dark'
+          ? `border-slate-700/50 bg-gradient-to-br ${colors.bg} backdrop-blur-xl hover:border-slate-600/60`
+          : `border-slate-200/70 bg-gradient-to-br ${colors.bgLight} backdrop-blur-xl hover:border-slate-300/80`
+      }`}>
+
+        <CardContent className="flex items-center gap-4 p-5">
+          <motion.div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.gradient} shadow-lg`}
+            whileHover={{ rotate: 10, scale: 1.1 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+          >
+            <Icon className="h-5 w-5 text-white" />
+          </motion.div>
           <div className="min-w-0">
-            <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="text-xl font-extrabold tracking-tight">{value}</p>
+            <p className={`truncate text-xs font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{label}</p>
+            <p className={`text-2xl font-extrabold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{value}</p>
           </div>
         </CardContent>
       </Card>

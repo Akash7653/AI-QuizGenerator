@@ -16,11 +16,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { filterSuggestions, generateQuiz } from '@/lib/quizEngine';
+import { filterSuggestions, generateQuiz, getTopicSuggestions } from '@/lib/quizEngine';
+import { quizAPI } from '@/lib/api';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import type { Difficulty, QuestionType, QuizConfig, QuizQuestion, SourceType } from '@/types';
 
 interface Props {
   onGenerate: (config: QuizConfig, questions: QuizQuestion[]) => void;
+  userName?: string;
 }
 
 const NUM_OPTIONS = [5, 10, 15, 20];
@@ -33,7 +36,8 @@ const Q_TYPES: { label: string; value: QuestionType; icon: any; desc: string }[]
 ];
 const TIME_OPTIONS = [0, 5, 10, 15, 20];
 
-export function CreateQuiz({ onGenerate }: Props) {
+export function CreateQuiz({ onGenerate, userName }: Props) {
+  const { theme } = useThemeMode();
   const [tab, setTab] = useState<'topic' | 'pdf' | 'text' | 'url'>('topic');
   const [topic, setTopic] = useState('');
   const [showSuggest, setShowSuggest] = useState(false);
@@ -57,7 +61,10 @@ export function CreateQuiz({ onGenerate }: Props) {
   const [randomize, setRandomize] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  const suggestions = topic ? filterSuggestions(topic) : filterSuggestions('');
+  const defaultSuggestions = getTopicSuggestions();
+  const normalizedTopic = topic.trim();
+  const isCustomTopic = normalizedTopic.length > 0 && !defaultSuggestions.some((item) => item.toLowerCase() === normalizedTopic.toLowerCase());
+  const suggestions = normalizedTopic ? [...new Set([...filterSuggestions(normalizedTopic), ...(isCustomTopic ? [normalizedTopic] : [])])] : filterSuggestions('');
 
   const handleTopicKey = (e: React.KeyboardEvent) => {
     if (!showSuggest) return;
@@ -71,7 +78,6 @@ export function CreateQuiz({ onGenerate }: Props) {
     setFileName(file.name);
     setPdfStage('uploading');
     setPdfProgress(0);
-    // Simulate upload
     await animateProgress(30, 400, setPdfProgress);
     setPdfStage('extracting');
     await animateProgress(90, 700, setPdfProgress);
@@ -96,7 +102,7 @@ export function CreateQuiz({ onGenerate }: Props) {
 
   const canGenerate = (): boolean => {
     if (generating) return false;
-    if (tab === 'topic') return topic.trim().length > 0;
+    if (tab === 'topic') return normalizedTopic.length > 0;
     if (tab === 'pdf') return pdfStage === 'ready';
     if (tab === 'text') return pastedText.trim().length > 20;
     if (tab === 'url') return url.trim().length > 5;
@@ -104,18 +110,29 @@ export function CreateQuiz({ onGenerate }: Props) {
   };
 
   const getTopicLabel = (): string => {
-    if (tab === 'topic') return topic.trim();
+    if (tab === 'topic') return normalizedTopic;
     if (tab === 'pdf') return fileName ?? 'Uploaded PDF';
     if (tab === 'text') return 'Pasted Text';
     if (tab === 'url') return 'Article URL';
     return '';
   };
 
+  const mapGeneratedQuestions = (items: any[] = []): QuizQuestion[] =>
+    items.map((item, index) => ({
+      id: String(item.id ?? `api-${index}-${Date.now()}`),
+      type: item.type === 'truefalse' ? 'truefalse' : item.type === 'short' ? 'short' : 'mcq',
+      question: String(item.question ?? item.question_text ?? `Question ${index + 1}`),
+      options: Array.isArray(item.options) && item.options.length ? item.options : ['True', 'False'],
+      correctAnswer: String(item.correctAnswer ?? item.correct_answer ?? 'True'),
+      explanation: String(item.explanation ?? 'Topic concept explanation.'),
+      source: item.source ?? `AI-generated topic: ${normalizedTopic}`,
+      topic: String(item.topic ?? normalizedTopic),
+      difficulty: (item.difficulty as Difficulty) ?? difficulty,
+    }));
+
   const handleGenerate = async () => {
     if (!canGenerate()) return;
-    setGenerating(true);
-    // Simulate AI generation latency
-    await new Promise((r) => setTimeout(r, 1100));
+
     const config: QuizConfig = {
       topic: getTopicLabel(),
       sourceType: tab as SourceType,
@@ -128,29 +145,68 @@ export function CreateQuiz({ onGenerate }: Props) {
       randomizeQuestions: randomize,
       fileName: tab === 'pdf' ? fileName ?? undefined : undefined,
     };
-    const questions = generateQuiz(config);
-    setGenerating(false);
-    onGenerate(config, questions);
+
+    setGenerating(true);
+
+    try {
+      let questions: QuizQuestion[] = [];
+
+      if (tab === 'topic' && isCustomTopic) {
+        const response = await quizAPI.generateFromTopic({
+          topic: normalizedTopic,
+          difficulty,
+          total_questions: numQuestions,
+          question_type: questionType,
+          time_limit: timeLimit,
+          source_type: 'topic',
+        });
+        questions = mapGeneratedQuestions(response?.questions ?? []);
+      } else {
+        questions = generateQuiz(config);
+      }
+
+      if (!questions.length) {
+        questions = generateQuiz(config);
+      }
+
+      onGenerate(config, questions);
+    } catch (error) {
+      console.error('[CreateQuiz] generation failed:', error);
+      onGenerate(config, generateQuiz(config));
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Create a New Quiz</h1>
-        <p className="mt-2 text-sm text-muted-foreground sm:text-base">Choose a source — type a topic, upload a PDF, paste text, or enter an article URL.</p>
+    <div className="mx-auto max-w-5xl space-y-6 pb-24 lg:pb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className={`rounded-[30px] border p-6 shadow-[0_28px_80px_rgba(99,102,241,0.12)] backdrop-blur-xl ${theme === 'dark' ? 'border-violet-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/30' : 'border-violet-200/80 bg-gradient-to-br from-white via-violet-50 to-blue-50'}`}
+      >
+        <p className={`mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${theme === 'dark' ? 'border-violet-500/30 bg-violet-500/10 text-violet-200' : 'border-violet-200 bg-violet-100 text-violet-700'}`}>
+          <Sparkles className="h-3.5 w-3.5" /> AI Studio
+        </p>
+        <h1 className={`text-3xl font-black tracking-tight sm:text-4xl ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+          {userName ? `${userName.split(' ')[0]}'s quiz studio` : 'Create a New Quiz'}
+        </h1>
+        <p className={`mt-2 text-sm sm:text-base ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+          Choose a source — type a topic, upload a PDF, paste text, or enter an article URL.
+        </p>
       </motion.div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-        <TabsList className="grid w-full grid-cols-4 rounded-xl">
-          <TabsTrigger value="topic" className="rounded-lg"><Search className="mr-1.5 h-4 w-4" /> Topic</TabsTrigger>
-          <TabsTrigger value="pdf" className="rounded-lg"><FileText className="mr-1.5 h-4 w-4" /> PDF</TabsTrigger>
-          <TabsTrigger value="text" className="rounded-lg"><Type className="mr-1.5 h-4 w-4" /> Text</TabsTrigger>
-          <TabsTrigger value="url" className="rounded-lg"><Link2 className="mr-1.5 h-4 w-4" /> URL</TabsTrigger>
+        <TabsList className={`grid w-full grid-cols-4 rounded-2xl border p-1.5 shadow-sm backdrop-blur ${theme === 'dark' ? 'border-slate-700/70 bg-slate-900/60' : 'border-slate-200/80 bg-white/80'}`}>
+          <TabsTrigger value="topic" className="rounded-xl"><Search className="mr-1.5 h-4 w-4" /> Topic</TabsTrigger>
+          <TabsTrigger value="pdf" className="rounded-xl"><FileText className="mr-1.5 h-4 w-4" /> PDF</TabsTrigger>
+          <TabsTrigger value="text" className="rounded-xl"><Type className="mr-1.5 h-4 w-4" /> Text</TabsTrigger>
+          <TabsTrigger value="url" className="rounded-xl"><Link2 className="mr-1.5 h-4 w-4" /> URL</TabsTrigger>
         </TabsList>
 
-        {/* Topic tab */}
         <TabsContent value="topic" className="mt-4">
-          <Card>
+          <Card className={theme === 'dark' ? 'border-slate-700/70 bg-slate-900/60' : 'border-slate-200/80 bg-white/80'}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Search className="h-5 w-5 text-primary" /> Search a Topic</CardTitle>
               <CardDescription>What do you want to learn?</CardDescription>
@@ -158,7 +214,7 @@ export function CreateQuiz({ onGenerate }: Props) {
             <CardContent className="space-y-4">
               <div className="relative">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />
                   <Input
                     value={topic}
                     onChange={(e) => { setTopic(e.target.value); setShowSuggest(true); setActiveSuggest(-1); }}
@@ -166,7 +222,7 @@ export function CreateQuiz({ onGenerate }: Props) {
                     onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
                     onKeyDown={handleTopicKey}
                     placeholder="What do you want to learn?"
-                    className="h-12 rounded-xl pl-10 text-base"
+                    className={`h-12 rounded-2xl pl-10 text-base ${theme === 'dark' ? 'border-slate-700 bg-slate-950/40 text-white' : 'border-slate-200 bg-slate-50 text-slate-900'}`}
                   />
                 </div>
                 <AnimatePresence>
@@ -175,13 +231,13 @@ export function CreateQuiz({ onGenerate }: Props) {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-lg"
+                      className={`absolute z-20 mt-1 w-full overflow-hidden rounded-2xl border shadow-xl ${theme === 'dark' ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`}
                     >
                       {suggestions.map((s, i) => (
                         <button
                           key={s}
                           onMouseDown={() => { setTopic(s); setShowSuggest(false); }}
-                          className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${i === activeSuggest ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}
+                          className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${i === activeSuggest ? 'bg-violet-500/10 text-violet-600 dark:text-violet-200' : theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
                         >
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
                           {s}
@@ -192,44 +248,36 @@ export function CreateQuiz({ onGenerate }: Props) {
                 </AnimatePresence>
               </div>
               <div className="flex flex-wrap gap-2">
-                {filterSuggestions('').slice(0, 6).map((s) => (
-                  <button key={s} onClick={() => setTopic(s)} className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
+                {defaultSuggestions.slice(0, 6).map((s) => (
+                  <button key={s} onClick={() => setTopic(s)} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${theme === 'dark' ? 'border-slate-700 bg-slate-800 text-slate-200 hover:border-violet-500/60 hover:text-violet-200' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-violet-300 hover:text-violet-700'}`}>
                     {s}
                   </button>
                 ))}
               </div>
+              {isCustomTopic && (
+                <div className={`rounded-xl border border-dashed px-3 py-2 text-xs ${theme === 'dark' ? 'border-violet-500/40 bg-violet-500/10 text-violet-200' : 'border-violet-300 bg-violet-50 text-violet-700'}`}>
+                  Custom topic detected — Gemini will generate a quiz for this topic.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* PDF tab */}
         <TabsContent value="pdf" className="mt-4">
-          <Card>
+          <Card className={theme === 'dark' ? 'border-slate-700/70 bg-slate-900/60' : 'border-slate-200/80 bg-white/80'}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Upload a PDF</CardTitle>
               <CardDescription>We'll extract the text and generate questions based only on your document.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf,.pdf"
-                className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
-              />
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-accent/30'}`}
-              >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
+              <div onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()} className={`relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${dragOver ? 'border-primary bg-primary/5' : theme === 'dark' ? 'border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/70' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50'}`}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-blue-500 text-white shadow-lg shadow-violet-500/20">
                   <FileUp className="h-7 w-7" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Drag and drop your PDF here</p>
-                  <p className="text-xs text-muted-foreground">or click to browse — PDF files only</p>
+                  <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>or click to browse — PDF files only</p>
                 </div>
                 <Button type="button" variant="outline" className="mt-1" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
                   <Upload className="mr-2 h-4 w-4" /> Upload PDF
@@ -238,26 +286,21 @@ export function CreateQuiz({ onGenerate }: Props) {
 
               <AnimatePresence>
                 {fileName && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center justify-between rounded-xl border border-border/60 p-3">
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-3">
+                    <div className={`flex items-center justify-between rounded-xl border p-3 ${theme === 'dark' ? 'border-slate-700 bg-slate-950/40' : 'border-slate-200 bg-slate-50'}`}>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-blue-500 text-white">
                           <FileText className="h-5 w-5" />
                         </div>
                         <div>
                           <p className="max-w-[200px] truncate text-sm font-medium sm:max-w-xs">{fileName}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                             {pdfStage === 'ready' ? 'Text extracted — ready to generate' : pdfStage === 'extracting' ? 'Extracting text…' : 'Uploading…'}
                           </p>
                         </div>
                       </div>
                       {pdfStage === 'ready' ? (
-                        <CheckCircle2 className="h-5 w-5 text-success" />
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                       ) : (
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFileName(null); setPdfStage('idle'); setPdfProgress(0); }}>
                           <X className="h-4 w-4" />
@@ -266,10 +309,10 @@ export function CreateQuiz({ onGenerate }: Props) {
                     </div>
                     {pdfStage !== 'idle' && pdfStage !== 'ready' && (
                       <div className="space-y-1">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                          <motion.div className="h-full rounded-full bg-primary" animate={{ width: `${pdfProgress}%` }} transition={{ duration: 0.3 }} />
+                        <div className={`h-2 w-full overflow-hidden rounded-full ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                          <motion.div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500" animate={{ width: `${pdfProgress}%` }} transition={{ duration: 0.3 }} />
                         </div>
-                        <p className="text-xs text-muted-foreground">{pdfStage === 'uploading' ? 'Uploading file…' : 'Extracting text with PyMuPDF…'} {pdfProgress}%</p>
+                        <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{pdfStage === 'uploading' ? 'Uploading file…' : 'Extracting text with PyMuPDF…'} {pdfProgress}%</p>
                       </div>
                     )}
                   </motion.div>
@@ -279,117 +322,83 @@ export function CreateQuiz({ onGenerate }: Props) {
           </Card>
         </TabsContent>
 
-        {/* Text tab */}
         <TabsContent value="text" className="mt-4">
-          <Card>
+          <Card className={theme === 'dark' ? 'border-slate-700/70 bg-slate-900/60' : 'border-slate-200/80 bg-white/80'}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Type className="h-5 w-5 text-primary" /> Paste Text</CardTitle>
               <CardDescription>Paste notes or an article and we'll build a quiz from it.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={pastedText}
-                onChange={(e) => setPastedText(e.target.value)}
-                placeholder="Paste your study notes or article text here…"
-                className="min-h-[180px] rounded-xl"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">{pastedText.trim().length} characters</p>
+              <Textarea value={pastedText} onChange={(e) => setPastedText(e.target.value)} placeholder="Paste your study notes or article text here…" className={`min-h-[180px] rounded-2xl ${theme === 'dark' ? 'border-slate-700 bg-slate-950/40 text-white' : 'border-slate-200 bg-slate-50 text-slate-900'}`} />
+              <p className={`mt-2 text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{pastedText.trim().length} characters</p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* URL tab */}
         <TabsContent value="url" className="mt-4">
-          <Card>
+          <Card className={theme === 'dark' ? 'border-slate-700/70 bg-slate-900/60' : 'border-slate-200/80 bg-white/80'}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5 text-primary" /> Article URL</CardTitle>
               <CardDescription>Enter a link to an article and we'll fetch the content.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="relative">
-                <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com/article"
-                  className="h-12 rounded-xl pl-10 text-base"
-                />
+                <Link2 className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />
+                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/article" className={`h-12 rounded-2xl pl-10 text-base ${theme === 'dark' ? 'border-slate-700 bg-slate-950/40 text-white' : 'border-slate-200 bg-slate-50 text-slate-900'}`} />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Settings */}
-      <Card>
+      <Card className={theme === 'dark' ? 'border-slate-700/70 bg-slate-900/60' : 'border-slate-200/80 bg-white/80'}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Settings2 className="h-5 w-5 text-primary" /> Quiz Settings</CardTitle>
           <CardDescription>Customize your quiz before generating</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Number of questions */}
           <SettingRow icon={ListOrdered} label="Number of Questions" tooltip="How many questions to generate">
             <div className="flex flex-wrap gap-2">
               {NUM_OPTIONS.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setNumQuestions(n)}
-                  className={`h-10 w-12 rounded-xl border text-sm font-semibold transition-all ${numQuestions === n ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'border-border hover:border-primary/40 hover:bg-accent/40'}`}
-                >
+                <button key={n} onClick={() => setNumQuestions(n)} className={`h-10 w-12 rounded-xl border text-sm font-semibold transition-all ${numQuestions === n ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : theme === 'dark' ? 'border-slate-700 hover:border-violet-500/60 hover:bg-slate-800' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50'}`}>
                   {n}
                 </button>
               ))}
             </div>
           </SettingRow>
 
-          {/* Difficulty */}
           <SettingRow icon={Gauge} label="Difficulty" tooltip="Choose the challenge level">
             <div className="flex flex-wrap gap-2">
               {DIFFICULTIES.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDifficulty(d)}
-                  className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all ${difficulty === d ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'border-border hover:border-primary/40 hover:bg-accent/40'}`}
-                >
+                <button key={d} onClick={() => setDifficulty(d)} className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all ${difficulty === d ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : theme === 'dark' ? 'border-slate-700 hover:border-violet-500/60 hover:bg-slate-800' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50'}`}>
                   {d}
                 </button>
               ))}
             </div>
           </SettingRow>
 
-          {/* Question type */}
           <SettingRow icon={HelpCircle} label="Question Type" tooltip="Format of the questions">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {Q_TYPES.map((q) => (
-                <button
-                  key={q.value}
-                  onClick={() => setQuestionType(q.value)}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all ${questionType === q.value ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/40 hover:bg-accent/40'}`}
-                >
-                  <q.icon className={`h-5 w-5 ${questionType === q.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                <button key={q.value} onClick={() => setQuestionType(q.value)} className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all ${questionType === q.value ? 'border-primary bg-primary/5 shadow-sm' : theme === 'dark' ? 'border-slate-700 hover:border-violet-500/60 hover:bg-slate-800' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50'}`}>
+                  <q.icon className={`h-5 w-5 ${questionType === q.value ? 'text-primary' : theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />
                   <span className="text-xs font-semibold">{q.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{q.desc}</span>
+                  <span className={`text-[10px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{q.desc}</span>
                 </button>
               ))}
             </div>
           </SettingRow>
 
-          {/* Time limit */}
           <SettingRow icon={Clock} label="Time Limit" tooltip="Minutes to complete (0 = no limit)">
             <div className="flex flex-wrap gap-2">
               {TIME_OPTIONS.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTimeLimit(t)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition-all ${timeLimit === t ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'border-border hover:border-primary/40 hover:bg-accent/40'}`}
-                >
+                <button key={t} onClick={() => setTimeLimit(t)} className={`rounded-xl border px-3 py-2 text-sm font-medium transition-all ${timeLimit === t ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20' : theme === 'dark' ? 'border-slate-700 hover:border-violet-500/60 hover:bg-slate-800' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50'}`}>
                   {t === 0 ? 'No limit' : `${t} min`}
                 </button>
               ))}
             </div>
           </SettingRow>
 
-          {/* Toggles */}
           <div className="grid gap-3 sm:grid-cols-3">
             <ToggleRow icon={Gauge} label="Adaptive Difficulty" desc="Adjusts as you answer" checked={adaptive} onChange={setAdaptive} />
             <ToggleRow icon={Lightbulb} label="Show Explanations" desc="Reveal answers after submit" checked={showExplanations} onChange={setShowExplanations} />
@@ -398,7 +407,6 @@ export function CreateQuiz({ onGenerate }: Props) {
         </CardContent>
       </Card>
 
-      {/* Generate */}
       <div className="sticky bottom-4 z-30">
         <Card className="border-primary/30 shadow-xl shadow-primary/10">
           <CardContent className="flex flex-col items-center justify-between gap-4 p-4 sm:flex-row">
@@ -409,17 +417,8 @@ export function CreateQuiz({ onGenerate }: Props) {
               <Badge variant="outline">{questionType}</Badge>
               {timeLimit > 0 && <Badge variant="outline">{timeLimit} min</Badge>}
             </div>
-            <Button
-              size="lg"
-              onClick={handleGenerate}
-              disabled={!canGenerate()}
-              className="h-12 w-full rounded-xl text-base shadow-lg shadow-primary/30 sm:w-auto"
-            >
-              {generating ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating…</>
-              ) : (
-                <><Wand2 className="mr-2 h-5 w-5" /> Generate Quiz <ArrowRight className="ml-1 h-4 w-4" /></>
-              )}
+            <Button size="lg" onClick={handleGenerate} disabled={!canGenerate()} className="h-12 w-full rounded-xl text-base shadow-lg shadow-primary/30 sm:w-auto">
+              {generating ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating…</>) : (<><Wand2 className="mr-2 h-5 w-5" /> Generate Quiz <ArrowRight className="ml-1 h-4 w-4" /></>)}
             </Button>
           </CardContent>
         </Card>
