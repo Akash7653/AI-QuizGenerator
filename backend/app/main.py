@@ -47,7 +47,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     same_site="none",
-    https_only=settings.ENVIRONMENT.lower() != "development",
+    https_only=not settings.DEBUG,
     max_age=86400,
 )
 

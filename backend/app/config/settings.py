@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "AI Quiz Generator"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
-    ENVIRONMENT: str = "development"
+    DEBUG: bool = False
+    ENVIRONMENT: str = "production"
     SECRET_KEY: str = Field(..., description="Secret key for application")
     API_V1_PREFIX: str = "/api/v1"
     
@@ -56,6 +56,8 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8000",
         "https://ai-quiz-generator-orcin.vercel.app",
+        "https://ai-quiz-generator.vercel.app",
+        "https://ai-quizgenerator.onrender.com",
     ]
     
     @validator("CORS_ORIGINS", pre=True)
