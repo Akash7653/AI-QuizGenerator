@@ -57,8 +57,8 @@ class DashboardResponse(BaseModel):
     daily_progress: List[Dict[str, Any]]
     weekly_progress: List[Dict[str, Any]]
     monthly_progress: List[Dict[str, Any]]
-    topic_performance: List[Dict[str, Any]]
-    difficulty_performance: List[Dict[str, Any]]
+    topic_performance: Dict[str, Any]
+    difficulty_performance: Dict[str, Any]
     recent_quizzes: List[Dict[str, Any]]
     weak_areas: List[str]
     strong_areas: List[str]
@@ -68,7 +68,7 @@ class PerformanceAnalysis(BaseModel):
     """Performance analysis schema."""
     accuracy_trend: List[Dict[str, Any]]
     speed_analysis: Dict[str, Any]
-    difficulty_progression: List[Dict[str, Any]]
+    difficulty_progression: Dict[str, Any]
     topic_mastery: Dict[str, Any]
     learning_velocity: float
     retention_rate: float

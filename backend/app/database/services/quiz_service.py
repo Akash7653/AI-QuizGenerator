@@ -27,17 +27,16 @@ class QuizService:
     def create_quiz(self, quiz_data: QuizCreate, user_id: int) -> Quiz:
         """Create a new quiz."""
         logger.info(f"Creating quiz for user {user_id}")
-        
-        # Create quiz
-        quiz_dict = quiz_data.dict()
+
+        quiz_dict = quiz_data.model_dump(exclude_unset=True)
         quiz_dict['user_id'] = user_id
-        
+        quiz_dict.pop('question_ids', None)
+
         quiz = self.quiz_repository.create(quiz_dict)
-        
-        # Add questions if provided
+
         if quiz_data.question_ids:
             self.quiz_repository.add_questions_to_quiz(quiz.id, quiz_data.question_ids)
-        
+
         logger.info(f"Quiz created with ID {quiz.id}")
         return quiz
     
@@ -338,25 +337,49 @@ class QuizService:
         return self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
     
     def get_user_attempts_with_quiz_details(self, user_id: int, skip: int = 0, limit: int = 100) -> list:
-        """Get quiz attempt history with quiz details for dashboard."""
+        """Get quiz history for the current user, including quizzes without saved attempts."""
         attempts = self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
         history = []
+        seen_quiz_ids = set()
+
         for attempt in attempts:
             quiz = self.quiz_repository.get_by_id(attempt.quiz_id)
-            if quiz:
-                history.append({
-                    'id': attempt.id,
-                    'quiz_id': attempt.quiz_id,
-                    'topic': quiz.title,
-                    'total_score': attempt.total_score,
-                    'percentage': attempt.percentage,
-                    'total_questions': quiz.total_questions,
-                    'time_taken': attempt.time_taken,
-                    'completed_at': attempt.completed_at,
-                    'difficulty': 'Medium',  # Default, could be stored in quiz model
-                    'question_type': 'Mixed',  # Default
-                    'source_type': 'topic',  # Could be determined from quiz source
-                })
+            if not quiz:
+                continue
+            seen_quiz_ids.add(attempt.quiz_id)
+            history.append({
+                'id': attempt.id,
+                'quiz_id': attempt.quiz_id,
+                'topic': quiz.title,
+                'total_score': attempt.total_score,
+                'percentage': attempt.percentage,
+                'total_questions': quiz.total_questions or attempt.max_score or 0,
+                'time_taken': attempt.time_taken,
+                'completed_at': attempt.completed_at,
+                'difficulty': 'Medium',
+                'question_type': 'Mixed',
+                'source_type': 'topic',
+            })
+
+        user_quizzes = self.quiz_repository.get_by_user_id(user_id, skip, limit)
+        for quiz in user_quizzes:
+            if quiz.id in seen_quiz_ids:
+                continue
+            history.append({
+                'id': f"quiz-{quiz.id}",
+                'quiz_id': quiz.id,
+                'topic': quiz.title,
+                'total_score': float(quiz.total_marks or 0),
+                'percentage': 0.0,
+                'total_questions': quiz.total_questions or 0,
+                'time_taken': 0,
+                'completed_at': int(quiz.created_at.timestamp()) if quiz.created_at else None,
+                'difficulty': 'Medium',
+                'question_type': 'Mixed',
+                'source_type': 'topic',
+            })
+
+        history.sort(key=lambda item: (item.get('completed_at') or 0, item.get('id', 0)), reverse=True)
         return history
     
     def delete_quiz(self, quiz_id: int, user_id: int) -> bool:

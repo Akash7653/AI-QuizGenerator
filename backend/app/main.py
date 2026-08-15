@@ -160,12 +160,13 @@ setup_cors(app)
 
 # Add session middleware (for session-based authentication)
 # Cross-site auth between Vercel and Render requires the session cookie to persist
-# across different origins. We only force Secure in production so localhost remains usable.
+# across origins in production. Local development and TestClient must stay non-secure
+# so the cookie is preserved during normal http-based testing and local debugging.
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
-    same_site="lax" if settings.DEBUG else "none",
-    https_only=False if settings.DEBUG else True,
+    same_site="lax" if settings.DEBUG or settings.ENVIRONMENT.lower() != "production" else "none",
+    https_only=settings.ENVIRONMENT.lower() == "production",
     max_age=86400,
 )
 

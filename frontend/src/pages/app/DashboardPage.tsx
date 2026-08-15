@@ -109,10 +109,21 @@ export function DashboardPage() {
             }))
           : [];
 
-        const totalQuizzes = Math.max(Number(analytics?.total_quizzes_attempted ?? 0), localResults.length);
-        const averageScore = localResults.length > 0
-          ? Math.round(localResults.reduce((sum, item) => sum + Number(item.score || 0), 0) / localResults.length)
+        const totalLocalResults = localResults.length;
+        const analyticsTotal = Number(analytics?.total_quizzes_attempted ?? 0);
+        const totalQuizzes = Math.max(analyticsTotal, totalLocalResults);
+        const localAverage = totalLocalResults > 0
+          ? Math.round(localResults.reduce((sum, item) => sum + Number(item.score || 0), 0) / totalLocalResults)
+          : 0;
+        const averageScore = totalLocalResults > 0
+          ? localAverage
           : Number(analytics?.average_score ?? user?.averageScore ?? 0);
+        const totalAnswered = totalLocalResults > 0
+          ? localResults.reduce((sum, item) => sum + Number(item.total || 0), 0)
+          : Number(analytics?.total_questions_attempted ?? 0);
+        const overallAccuracy = totalLocalResults > 0
+          ? Math.round(localResults.reduce((sum, item) => sum + Number(item.accuracy || item.score || 0), 0) / totalLocalResults)
+          : Number(analytics?.overall_accuracy ?? user?.averageScore ?? 0);
 
         setWeakTopics(topics.filter((topic) => topic.accuracy < 75).slice(0, 4));
         setRecommendations(mappedRecommendations);
@@ -120,8 +131,8 @@ export function DashboardPage() {
         setStats({
           averageScore,
           quizzesCompleted: totalQuizzes,
-          questionsAnswered: localResults.length > 0 ? localResults.reduce((sum, item) => sum + Number(item.total || 0), 0) : Number(analytics?.total_questions_attempted ?? 0),
-          accuracy: localResults.length > 0 ? Math.round(localResults.reduce((sum, item) => sum + Number(item.accuracy || item.score || 0), 0) / localResults.length) : Number(analytics?.overall_accuracy ?? user?.averageScore ?? 0),
+          questionsAnswered: totalAnswered,
+          accuracy: overallAccuracy,
           streak: Number(user?.streak ?? 0),
         });
       } catch {

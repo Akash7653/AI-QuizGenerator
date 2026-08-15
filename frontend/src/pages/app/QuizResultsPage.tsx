@@ -35,6 +35,13 @@ export function QuizResultsPage() {
     { icon: Target, label: 'Accuracy', value: `${result.accuracy}%`, color: 'text-accent-600 dark:text-accent-400', bg: 'bg-accent-100 dark:bg-accent-900/30' },
   ];
 
+  const summaryTitle = result.score >= 80 ? 'Excellent work' : result.score >= 60 ? 'Solid performance' : 'Nice effort';
+  const summaryText = result.score >= 80
+    ? 'Outstanding work! You have a strong grasp of this topic and are ready for the next challenge.'
+    : result.score >= 60
+    ? 'Good effort! You are building momentum. A quick review of the missed questions will push you further.'
+    : 'You are making progress. Focus on a few weak areas, then jump back in and try another round.';
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Hero */}
@@ -54,10 +61,11 @@ export function QuizResultsPage() {
         >
           🎉
         </motion.div>
-        <h1 className="text-2xl font-extrabold text-ink-900 dark:text-white mb-6 relative z-10">Quiz Completed!</h1>
+        <h1 className="text-2xl font-extrabold text-ink-900 dark:text-white mb-2 relative z-10">Quiz Complete</h1>
+        <p className="mb-6 text-sm text-ink-600 dark:text-ink-400 relative z-10">{summaryTitle}</p>
 
         {/* Circular score */}
-        <div className="relative w-40 h-40 sm:w-44 sm:h-44 mx-auto mb-4 flex items-center justify-center">
+        <div className="relative w-36 h-36 sm:w-40 sm:h-40 mx-auto mb-4 flex items-center justify-center">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
             <circle cx="100" cy="100" r={radius} fill="none" strokeWidth="12" className="stroke-ink-100 dark:stroke-ink-800" />
             <motion.circle
@@ -81,14 +89,14 @@ export function QuizResultsPage() {
               transition={{ delay: 0.5 }}
               className="flex items-end justify-center gap-1 leading-none"
             >
-              <span className={`text-3xl sm:text-4xl font-extrabold ${getScoreColor(result.score)}`}>
+              <span className={`text-2xl sm:text-3xl font-extrabold ${getScoreColor(result.score)}`}>
                 {result.score}
               </span>
-              <span className={`text-xl sm:text-2xl font-bold ${getScoreColor(result.score)}`}>
+              <span className={`text-lg sm:text-xl font-bold ${getScoreColor(result.score)}`}>
                 %
               </span>
             </motion.div>
-            <p className="text-sm text-ink-500 mt-2">{getScoreLabel(result.score)}</p>
+            <p className="text-xs sm:text-sm text-ink-500 mt-2">{getScoreLabel(result.score)}</p>
           </div>
         </div>
 
@@ -137,14 +145,8 @@ export function QuizResultsPage() {
             }`} />
           </div>
           <div>
-            <h3 className="font-bold text-ink-900 dark:text-white">{getScoreLabel(result.score)}</h3>
-            <p className="text-sm text-ink-500 dark:text-ink-400">
-              {result.score >= 80
-                ? 'Outstanding work! You have a strong grasp of this topic.'
-                : result.score >= 60
-                ? 'Good effort! Review the incorrect answers to improve further.'
-                : 'Keep practicing. Focus on the weak topics shown in your recommendations.'}
-            </p>
+            <h3 className="font-bold text-ink-900 dark:text-white">{summaryTitle}</h3>
+            <p className="text-sm text-ink-500 dark:text-ink-400">{summaryText}</p>
           </div>
         </div>
       </motion.div>

@@ -125,9 +125,8 @@ export function QuizInterfacePage() {
     });
   };
 
-  const handleSubmit = useCallback(() => {
-    if (!quiz) return;
-    if (timerRef.current) clearInterval(timerRef.current);
+  const buildResult = useCallback((): QuizResult | null => {
+    if (!quiz) return null;
 
     const answerRecords: AnswerRecord[] = quiz.questions.map((q, i) => {
       const selected = answers[i];
@@ -152,10 +151,10 @@ export function QuizInterfacePage() {
     const wrong = answerRecords.filter((a) => !a.isCorrect && !a.skipped).length;
     const unanswered = answerRecords.filter((a) => a.skipped).length;
     const total = quiz.questions.length;
-    const scorePct = Math.round((correct / total) * 100);
-    const timeTaken = quiz.config.timeLimit * 60 - timeLeft;
+    const scorePct = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const timeTaken = quiz.config.timeLimit > 0 ? Math.max(quiz.config.timeLimit * 60 - timeLeft, 0) : 0;
 
-    const result: QuizResult = {
+    return {
       id: `result_${Date.now()}`,
       quizId: quiz.id,
       quizTitle: quiz.title,
@@ -168,14 +167,32 @@ export function QuizInterfacePage() {
       wrong,
       unanswered,
       total,
-      timeTaken: timeTaken > 0 ? timeTaken : 300,
+      timeTaken: timeTaken > 0 ? timeTaken : Math.max(1, total * 30),
       accuracy: total > 0 ? Math.round((correct / (correct + wrong || 1)) * 100) : 0,
       answers: answerRecords,
     };
+  }, [answers, marked, quiz, timeLeft]);
+
+  const handleSubmit = useCallback(() => {
+    if (!quiz) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const result = buildResult();
+    if (!result) return;
 
     saveResult(result);
     navigate(`/quiz/${quiz.id}/results`, { state: { result } });
-  }, [quiz, answers, marked, timeLeft, navigate]);
+  }, [buildResult, navigate, quiz]);
+
+  const handleExitQuiz = useCallback(() => {
+    if (!quiz) return;
+    const result = buildResult();
+    if (!result) return;
+
+    saveResult(result);
+    setShowExit(false);
+    navigate(`/quiz/${quiz.id}/results`, { state: { result } });
+  }, [buildResult, navigate, quiz]);
 
   if (loading) {
     return (
@@ -288,33 +305,33 @@ export function QuizInterfacePage() {
               disabled={showExplanation}
             />
 
-            <div className="flex items-center justify-between gap-2 pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 sm:flex-nowrap">
               <button
                 onClick={handlePrev}
                 disabled={currentQ === 0}
-                className="btn-secondary px-4 py-2.5 disabled:opacity-40"
+                className="btn-secondary px-2.5 py-2 text-xs disabled:opacity-40 sm:px-4 sm:py-2.5 sm:text-sm"
               >
-                <ChevronLeft className="w-4 h-4" /> Previous
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Previous
               </button>
 
               <button
                 onClick={handleMark}
-                className={`btn px-4 py-2.5 ${
+                className={`btn px-2.5 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
                   marked[currentQ]
                     ? 'bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-300'
                     : 'btn-outline'
                 }`}
               >
-                <Flag className="w-4 h-4" /> {marked[currentQ] ? 'Unmark' : 'Mark'}
+                <Flag className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {marked[currentQ] ? 'Unmark' : 'Mark'}
               </button>
 
               {currentQ < quiz.questions.length - 1 ? (
-                <button onClick={handleNext} className="btn-primary px-4 py-2.5">
-                  Next <ChevronRight className="w-4 h-4" />
+                <button onClick={handleNext} className="btn-primary px-2.5 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm">
+                  Next <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               ) : (
-                <button onClick={() => setShowSubmit(true)} className="btn-primary px-4 py-2.5 bg-success-600 hover:bg-success-700">
-                  <CheckCircle2 className="w-4 h-4" /> Submit
+                <button onClick={() => setShowSubmit(true)} className="btn-primary px-2.5 py-2 text-xs bg-success-600 hover:bg-success-700 sm:px-4 sm:py-2.5 sm:text-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Submit
                 </button>
               )}
             </div>
@@ -365,15 +382,15 @@ export function QuizInterfacePage() {
 
       <Modal open={showExit} onClose={() => setShowExit(false)} title="Leave quiz?">
         <p className="mb-6 text-sm text-ink-600 dark:text-ink-400">
-          Your progress will be lost. Are you sure you want to exit this quiz?
+          Your current attempt will be saved and you will be taken to the results summary.
         </p>
         <div className="flex gap-3">
           <Button variant="secondary" className="flex-1" onClick={() => setShowExit(false)}>
             Stay
           </Button>
-          <Link to="/dashboard" className="btn flex-1 bg-error-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-error-700">
+          <Button className="flex-1 bg-error-600 hover:bg-error-700" onClick={handleExitQuiz}>
             Exit Quiz
-          </Link>
+          </Button>
         </div>
       </Modal>
     </div>

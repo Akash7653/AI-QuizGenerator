@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageSquareText, Send, Sparkles, X, Loader2, ShieldAlert } from 'lucide-react';
+import { Send, Sparkles, X, Loader2, ShieldAlert } from 'lucide-react';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import chatbotImage from '../../../assets/chatbot_img.png';
@@ -148,36 +148,32 @@ export function ChatbotWidget() {
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Open AI assistant"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-500"
+            className="flex h-16 w-16 items-center justify-center rounded-full border border-brand-200 bg-white/90 p-1 shadow-[0_12px_28px_rgba(59,130,246,0.20)] backdrop-blur-sm transition hover:scale-[1.02] hover:bg-white"
           >
-            <RobotGlyph className="h-8 w-8" />
+            <RobotGlyph className="h-12 w-12" />
           </button>
         )}
 
         {open && (
-          <div className="w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl dark:border-ink-800 dark:bg-ink-900">
-            <div className="flex items-center justify-between border-b border-ink-200 bg-brand-600 px-4 py-3 text-white dark:border-ink-800">
+          <div className="w-[min(92vw,420px)] overflow-hidden rounded-[26px] border border-slate-200 bg-white/95 shadow-[0_22px_60px_rgba(15,23,42,0.15)] backdrop-blur-sm dark:border-ink-800 dark:bg-ink-900/95">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-ink-800 dark:bg-ink-900">
               <div className="flex items-center gap-2">
-                <div className="overflow-hidden rounded-full bg-white/15 p-0.5">
-                  <img src={chatbotImage} alt="QuizBot" className="h-7 w-7 rounded-full object-cover" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">QuizBot</p>
-                  <p className="text-[10px] text-brand-100">Study assistant</p>
+                <div className="overflow-hidden rounded-full border border-brand-200 bg-brand-50 p-0.5">
+                  <img src={chatbotImage} alt="QuizBot" className="h-8 w-8 rounded-full object-cover" />
                 </div>
               </div>
               <button
                 type="button"
                 aria-label="Close assistant"
                 onClick={() => setOpen(false)}
-                className="rounded-full p-1.5 text-white/90 transition hover:bg-white/10"
+                className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 dark:text-ink-300 dark:hover:bg-ink-800"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="border-b border-ink-200 bg-ink-50 px-3 py-2 dark:border-ink-800 dark:bg-ink-950/60">
-              <div className="flex items-center gap-2 text-[11px] text-ink-600 dark:text-ink-300">
+            <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-ink-800 dark:bg-ink-950/60">
+              <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-ink-300">
                 {apiReady === false ? (
                   <ShieldAlert className="h-3.5 w-3.5 text-warning-500" />
                 ) : (
@@ -187,17 +183,17 @@ export function ChatbotWidget() {
               </div>
             </div>
 
-            <div className="max-h-[55vh] min-h-[260px] overflow-y-auto px-3 py-3 sm:max-h-[420px]" ref={scrollRef}>
+            <div className="max-h-[58vh] min-h-[290px] overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_40%)] px-3 py-3 sm:max-h-[440px]" ref={scrollRef}>
               {messages.map((message) => (
                 <div
                   key={message.id}
                   className={`mb-2 flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-6 ${
+                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-6 shadow-sm ${
                       message.sender === 'user'
                         ? 'bg-brand-600 text-white'
-                        : 'bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200'
+                        : 'bg-slate-100 text-slate-700 dark:bg-ink-800 dark:text-ink-200'
                     }`}
                   >
                     {message.text}
@@ -206,7 +202,7 @@ export function ChatbotWidget() {
               ))}
             </div>
 
-            <div className="border-t border-ink-200 p-3 dark:border-ink-800">
+            <div className="border-t border-slate-200 bg-white p-3 dark:border-ink-800 dark:bg-ink-900">
               <div className="flex gap-2">
                 <textarea
                   value={input}
@@ -220,7 +216,7 @@ export function ChatbotWidget() {
                   }}
                   placeholder={apiReady === false ? 'AI is unavailable right now' : 'Ask about your next quiz...'}
                   disabled={sending || apiReady === false}
-                  className="min-h-[42px] flex-1 resize-none rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-800 outline-none transition focus:border-brand-500 dark:border-ink-700 dark:bg-ink-950 dark:text-ink-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-[42px] flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-brand-500 dark:border-ink-700 dark:bg-ink-950 dark:text-ink-100 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <button
                   type="button"

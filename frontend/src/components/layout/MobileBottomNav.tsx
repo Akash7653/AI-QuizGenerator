@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 
 const publicItems = [
   { to: '/', icon: Home, label: 'Home', isAnchor: false },
-  { to: '/#how', icon: Sparkles, label: 'How it works', isAnchor: true },
+  { to: '/how-it-works', icon: Sparkles, label: 'How it works', isAnchor: false },
   { to: '/login', icon: LogIn, label: 'Login', isAnchor: false },
   { to: '/register', icon: User, label: 'Sign Up', isAnchor: false },
 ];

@@ -16,8 +16,15 @@ const typeConfig = {
 };
 
 export function RecommendationCard({ rec, index = 0 }: RecommendationCardProps) {
-  const config = typeConfig[rec.type];
-  const Icon = config.icon;
+  const safeType = rec?.type && rec.type in typeConfig ? rec.type : 'recommended_quiz';
+  const config = typeConfig[safeType] ?? typeConfig.recommended_quiz;
+  const Icon = config.icon ?? Target;
+  const title = rec?.title || 'Recommended practice';
+  const description = rec?.description || 'Continue improving your skills.';
+  const actionLabel = rec?.actionLabel || 'Start practice';
+  const accuracy = typeof rec?.accuracy === 'number' ? rec.accuracy : undefined;
+
+  if (!rec) return null;
 
   return (
     <motion.div
@@ -31,18 +38,18 @@ export function RecommendationCard({ rec, index = 0 }: RecommendationCardProps) 
           <Icon className={`w-5 h-5 ${config.color}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-ink-900 dark:text-white">{rec.title}</h3>
-          <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5 line-clamp-2">{rec.description}</p>
+          <h3 className="font-bold text-ink-900 dark:text-white">{title}</h3>
+          <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5 line-clamp-2">{description}</p>
         </div>
       </div>
 
-      {rec.accuracy !== undefined && (
+      {accuracy !== undefined && (
         <div className="mb-3">
           <div className="flex justify-between text-xs mb-1">
             <span className="text-ink-500">Accuracy</span>
-            <span className={`font-bold ${rec.accuracy < 60 ? 'text-error-600' : 'text-warning-600'}`}>{rec.accuracy}%</span>
+            <span className={`font-bold ${accuracy < 60 ? 'text-error-600' : 'text-warning-600'}`}>{accuracy}%</span>
           </div>
-          <ProgressBar value={rec.accuracy} barClassName={rec.accuracy < 60 ? 'bg-error-500' : 'bg-warning-500'} />
+          <ProgressBar value={accuracy} barClassName={accuracy < 60 ? 'bg-error-500' : 'bg-warning-500'} />
         </div>
       )}
 
@@ -50,7 +57,7 @@ export function RecommendationCard({ rec, index = 0 }: RecommendationCardProps) 
         to="/create-quiz"
         className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-ink-50 dark:bg-ink-800 text-sm font-medium text-ink-700 dark:text-ink-200 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
       >
-        {rec.actionLabel}
+        {actionLabel}
         <ArrowRight className="w-4 h-4" />
       </Link>
     </motion.div>

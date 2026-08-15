@@ -9,6 +9,8 @@ from app.config.settings import settings
 from app.database.connection import SessionLocal
 from app.database.schemas.user import UserCreate, UserUpdate
 from app.database.services.auth_service import AuthService
+from app.database.services.quiz_service import QuizService
+from app.database.schemas.quiz import QuizCreate
 
 
 @pytest.fixture
@@ -160,6 +162,65 @@ def test_login_invalid_credentials(client):
         }
     )
     assert response.status_code == 401
+
+
+def test_dashboard_returns_empty_analytics_for_new_user():
+    """New users should receive a valid empty analytics payload instead of a 500 validation error."""
+    with TestClient(app) as client:
+        register_response = client.post(
+            "/api/v1/auth/register",
+            json={
+                "name": "Analytics User",
+                "email": "analytics@example.com",
+                "password": "TestPass123",
+                "role": "student"
+            }
+        )
+        assert register_response.status_code == 201
+
+        login_response = client.post(
+            "/api/v1/auth/login",
+            data={
+                "username": "analytics@example.com",
+                "password": "TestPass123"
+            }
+        )
+        assert login_response.status_code == 200
+
+        dashboard_response = client.get("/api/v1/analytics/dashboard")
+        assert dashboard_response.status_code == 200
+        body = dashboard_response.json()
+        assert body["total_quizzes_attempted"] == 0
+        assert body["overall_accuracy"] == 0
+        assert isinstance(body["topic_performance"], dict)
+        assert isinstance(body["daily_progress"], list)
+
+
+def test_history_includes_previous_quizzes_without_attempts(db_session):
+    """Users should still see their earlier quizzes in history even if no attempt record exists yet."""
+    auth_service = AuthService(db_session)
+    user = auth_service.register_user(UserCreate(
+        name="History User",
+        email="history@example.com",
+        password="TestPass123",
+        role="student"
+    ))
+
+    quiz_service = QuizService(db_session)
+    quiz = quiz_service.create_quiz(QuizCreate(
+        title="Previous Biology Quiz",
+        description="Earlier quiz",
+        total_questions=5,
+        total_marks=5.0,
+        duration=300,
+        mode="practice",
+    ), user.id)
+
+    history = quiz_service.get_user_attempts_with_quiz_details(user.id)
+
+    assert len(history) >= 1
+    assert any(item["quiz_id"] == quiz.id for item in history)
+    assert history[0]["topic"] == "Previous Biology Quiz"
 
 
 def test_get_profile(client, db_session):

@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/common/States';
 
 // Public pages - lazy loaded
 const LandingPage = lazy(() => import('@/pages/public/LandingPage').then((m) => ({ default: m.LandingPage })));
+const HowItWorksPage = lazy(() => import('@/pages/public/HowItWorksPage').then((m) => ({ default: m.HowItWorksPage })));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
@@ -44,6 +45,7 @@ export default function App() {
             <Route element={<GlobalLayout />}>
             {/* Public routes */}
             <Route path="/" element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
+            <Route path="/how-it-works" element={<Suspense fallback={<PageLoader />}><HowItWorksPage /></Suspense>} />
             <Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
             <Route path="/register" element={<Suspense fallback={<PageLoader />}><RegisterPage /></Suspense>} />
             <Route path="/forgot-password" element={<Suspense fallback={<PageLoader />}><ForgotPasswordPage /></Suspense>} />
@@ -78,12 +80,28 @@ export default function App() {
           </Routes>
         </BrowserRouter>
         <Toaster
-          position="bottom-right"
+          position="top-right"
+          richColors
+          closeButton
+          expand
+          offset={12}
           toastOptions={{
+            duration: 4500,
+            classNames: {
+              toast:
+                'min-h-[64px] w-[min(92vw,360px)] rounded-2xl border text-sm font-medium shadow-lg md:text-base',
+              title: 'text-sm font-semibold md:text-base',
+              description: 'text-xs md:text-sm',
+              success: 'border-success-200 bg-success-50 text-success-900 dark:border-success-800 dark:bg-success-950/80 dark:text-success-100',
+              error: 'border-error-200 bg-error-50 text-error-900 dark:border-error-800 dark:bg-error-950/80 dark:text-error-100',
+              info: 'border-brand-200 bg-brand-50 text-brand-900 dark:border-brand-800 dark:bg-brand-950/80 dark:text-brand-100',
+              warning: 'border-warning-200 bg-warning-50 text-warning-900 dark:border-warning-800 dark:bg-warning-950/80 dark:text-warning-100',
+            },
             style: {
-              borderRadius: '12px',
-              border: 'none',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              borderRadius: '16px',
+              border: '1px solid rgba(148, 163, 184, 0.3)',
+              boxShadow: '0 12px 32px rgba(15, 23, 42, 0.14)',
+              padding: '12px 14px',
             },
           }}
         />
