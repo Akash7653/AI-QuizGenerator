@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, '');
   }
 
   const hostname = window.location.hostname;
@@ -10,7 +11,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:8000/api/v1';
   }
 
-  return `${window.location.protocol}//${hostname}:8000/api/v1`;
+  return 'https://ai-quizgenerator.onrender.com/api/v1';
 };
 
 const baseURL = getApiBaseUrl();
@@ -18,6 +19,7 @@ const baseURL = getApiBaseUrl();
 export const api = axios.create({
   baseURL,
   withCredentials: true,
+  timeout: 20000,
   headers: { 'Content-Type': 'application/json' },
 });
 

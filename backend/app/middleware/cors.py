@@ -13,6 +13,7 @@ def setup_cors(app: FastAPI):
         "http://localhost:8000",
         "https://ai-quiz-generator-orcin.vercel.app",
         "https://ai-quiz-generator.vercel.app",
+        "https://ai-quizgenerator.onrender.com",
     ]
 
     print(f"[CORS] Configuring CORS with origins: {origins}")
