@@ -164,8 +164,8 @@ setup_cors(app)
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
-    same_site="none",
-    https_only=not settings.DEBUG,
+    same_site="lax" if settings.DEBUG else "none",
+    https_only=False if settings.DEBUG else True,
     max_age=86400,
 )
 

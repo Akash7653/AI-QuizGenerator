@@ -69,8 +69,13 @@ export function Skeleton({ className = '' }: { className?: string }) {
 export function LoadingState({ label = 'Loading...' }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <div className="w-10 h-10 border-3 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-3" />
-      <p className="text-sm text-ink-500">{label}</p>
+      <div className="relative flex items-center justify-center mb-3">
+        <div className="absolute h-12 w-12 rounded-full bg-brand-200/70 dark:bg-brand-900/50 animate-ping" />
+        <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/30">
+          <span className="text-lg font-black text-white">Q</span>
+        </div>
+      </div>
+      {label && label !== 'Loading...' ? <p className="text-sm text-ink-500 dark:text-ink-400">{label}</p> : null}
     </div>
   );
 }

@@ -18,10 +18,16 @@ def setup_cors(app: FastAPI):
     print(f"[CORS] Configuring CORS with origins: {origins}")
 
     # Allow any localhost origin with any port during local development
+    lan_origin_regex = (
+        r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$|"
+        r"^https?://(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)([0-9]{1,3}\.){0,2}[0-9]{1,3}(:[0-9]+)?$|"
+        r"^https://.*\\.(vercel\\.app|onrender\\.com)$"
+    )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_origin_regex=r"^https?://localhost(:[0-9]+)?$|https://.*\\.(vercel\\.app|onrender\\.com)$",
+        allow_origin_regex=lan_origin_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],

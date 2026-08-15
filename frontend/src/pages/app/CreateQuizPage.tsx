@@ -141,6 +141,7 @@ export function CreateQuizPage() {
         topic || 'General',
         config,
       );
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       toast.success('Quiz generated successfully!');
       navigate(`/quiz/${quiz.id}`);
     } catch {

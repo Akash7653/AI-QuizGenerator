@@ -95,48 +95,49 @@ export function LandingPage() {
             <a href="#features" className="text-sm font-medium text-ink-600 dark:text-ink-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Features</a>
             <a href="#analytics" className="text-sm font-medium text-ink-600 dark:text-ink-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Analytics</a>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button
               type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               aria-label="Toggle dark mode"
-              className="btn-ghost w-10 h-10 rounded-full p-0 flex items-center justify-center"
+              className="btn-ghost w-9 h-9 sm:w-10 sm:h-10 rounded-full p-0 flex items-center justify-center"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <Link to="/login" className="btn-ghost px-3 py-2 text-sm">Login</Link>
-            <Link to="/register" className="btn-primary px-4 py-2 text-sm">Get Started</Link>
+            <Link to="/login" className="btn-ghost px-2.5 py-2 text-xs sm:px-3 sm:py-2 sm:text-sm">Login</Link>
+            <Link to="/register" className="btn-primary px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm whitespace-nowrap">Get Started</Link>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-20 pb-24 sm:pt-28 sm:pb-32 overflow-hidden">
+      <section className="relative pt-14 pb-18 sm:pt-28 sm:pb-32 overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-brand-200/40 dark:bg-brand-900/20 blur-3xl" />
           <div className="absolute top-40 right-1/4 w-[400px] h-[400px] rounded-full bg-accent-200/30 dark:bg-accent-900/15 blur-3xl" />
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="w-full"
           >
-            <div className="inline-flex items-center gap-2 chip bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 mb-6">
+            <div className="inline-flex items-center gap-2 chip bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 mb-5 sm:mb-6 text-xs sm:text-sm">
               <Sparkles className="w-3.5 h-3.5" />
               AI-Powered Quiz Generation
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-ink-900 dark:text-white leading-[1.1] text-balance">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-ink-900 dark:text-white leading-[1.05] text-balance">
               Turn your study material into <span className="text-brand-600 dark:text-brand-400">intelligent quizzes</span>.
             </h1>
-            <p className="mt-6 text-lg text-ink-600 dark:text-ink-400 max-w-xl">
+            <p className="mt-5 sm:mt-6 text-base sm:text-lg text-ink-600 dark:text-ink-400 max-w-xl">
               Upload PDFs, paste notes, or enter a topic — our AI generates personalized quizzes with multiple question types, adaptive difficulty, and detailed performance analytics.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link to="/register" className="btn-primary px-6 py-3 text-base">
-                Start for Free <ArrowRight className="w-5 h-5" />
+            <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Link to="/register" className="btn-primary px-5 py-3 text-sm sm:text-base w-full sm:w-auto justify-center">
+                Start for Free <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
-              <a href="#how" className="btn-outline px-6 py-3 text-base">
+              <a href="#how" className="btn-outline px-5 py-3 text-sm sm:text-base w-full sm:w-auto justify-center">
                 See How It Works
               </a>
             </div>
@@ -405,11 +406,11 @@ export function LandingPage() {
               <p className="mt-4 text-lg text-brand-200 max-w-xl mx-auto">
                 Create your first AI-powered quiz in under a minute. No credit card, no setup — just better studying.
               </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-                <Link to="/register" className="btn bg-white text-brand-700 hover:bg-brand-50 px-6 py-3 text-base font-bold shadow-lg active:scale-[0.98]">
-                  Create Your First Quiz <ArrowRight className="w-5 h-5" />
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center w-full">
+                <Link to="/register" className="btn bg-white text-brand-700 hover:bg-brand-50 px-6 py-3 text-sm sm:text-base font-bold shadow-lg active:scale-[0.98] w-full sm:w-auto justify-center">
+                  Create Your First Quiz <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Link>
-                <a href="#features" className="btn bg-white/10 text-white border border-white/20 hover:bg-white/20 px-6 py-3 text-base">
+                <a href="#features" className="btn bg-white/10 text-white border border-white/20 hover:bg-white/20 px-6 py-3 text-sm sm:text-base w-full sm:w-auto justify-center">
                   Explore Features
                 </a>
               </div>
