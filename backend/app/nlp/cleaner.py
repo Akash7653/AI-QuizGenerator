@@ -63,19 +63,19 @@ class TextCleaner:
     def clean_text(text: str, aggressive: bool = False) -> str:
         """Comprehensive text cleaning."""
         logger.info("Starting text cleaning")
-        
+
         # Basic cleaning
         text = TextCleaner.remove_headers_footers(text)
         text = TextCleaner.remove_urls(text)
         text = TextCleaner.remove_emails(text)
-        
+
         if aggressive:
             text = TextCleaner.remove_phone_numbers(text)
-            text = TextCleaner.remove_special_characters(text)
-        
+
+        text = TextCleaner.remove_special_characters(text)
         text = TextCleaner.normalize_whitespace(text)
         text = TextCleaner.remove_extra_newlines(text)
-        
+
         logger.info(f"Text cleaning completed. Original length: {len(text)}")
         return text
     

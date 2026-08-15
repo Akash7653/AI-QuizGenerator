@@ -23,9 +23,9 @@ class Settings(BaseSettings):
     MONGODB_URL: str = Field(default="mongodb://localhost:27017/quiz_generator", description="MongoDB connection URL")
     MONGODB_DATABASE: str = "quiz_generator"
     
-    # Redis
-    REDIS_URL: str = Field(..., description="Redis connection URL")
-    REDIS_CACHE_TTL: int = 3600
+    # Cache
+    REDIS_URL: str = ""
+    REDIS_CACHE_TTL: int = 0
     
     # JWT
     JWT_SECRET_KEY: str = Field(..., description="JWT secret key")
@@ -54,10 +54,11 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "http://localhost:4174",
+        "http://localhost:5173",
         "http://localhost:8000",
         "https://ai-quiz-generator-orcin.vercel.app",
         "https://ai-quiz-generator.vercel.app",
-        "https://ai-quizgenerator.onrender.com",
     ]
     
     @validator("CORS_ORIGINS", pre=True)

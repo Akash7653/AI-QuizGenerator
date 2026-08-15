@@ -18,9 +18,6 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 email-validator==2.1.0
 
-# Caching
-redis==5.0.1
-
 # Background Tasks
 celery==5.3.4
 flower==2.0.1

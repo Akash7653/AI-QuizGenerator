@@ -24,6 +24,13 @@ else:
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Ensure the mapped tables exist before the app or tests start querying them.
+try:
+    from app.database.models.base import Base
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
+
 # Dependency for FastAPI
 def get_db():
     """Database session dependency for FastAPI."""

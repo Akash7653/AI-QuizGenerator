@@ -6,7 +6,7 @@ from app.database.models.user import UserRole
 
 class UserBase(BaseModel):
     """Base user schema."""
-    username: str = Field(..., min_length=2, max_length=100)
+    username: Optional[str] = Field(None, min_length=2, max_length=100)
     email: EmailStr
     role: UserRole = UserRole.STUDENT
 
@@ -14,8 +14,13 @@ class UserBase(BaseModel):
     @classmethod
     def coerce_legacy_name(cls, values):
         if isinstance(values, dict):
-            if 'username' not in values and 'name' in values:
+            # Handle legacy 'name' field mapping to 'username'
+            if values.get('username') is None and values.get('name') is not None:
                 values['username'] = values['name']
+            # Ensure username is not None
+            if values.get('username') is None and values.get('email') is not None:
+                # Fall back to email prefix if no username provided
+                values['username'] = values['email'].split('@')[0]
         return values
 
 
@@ -78,6 +83,7 @@ class UserResponse(BaseModel):
     """User response schema."""
     id: int
     username: str
+    name: Optional[str] = None
     email: str
     role: UserRole
     profile_image: Optional[str] = None
@@ -92,6 +98,8 @@ class UserResponse(BaseModel):
         if isinstance(values, dict):
             if 'username' not in values and 'name' in values:
                 values['username'] = values['name']
+            if 'name' not in values and 'username' in values:
+                values['name'] = values['username']
         return values
 
     class Config:

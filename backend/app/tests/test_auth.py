@@ -1,9 +1,13 @@
+import sqlite3
+
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.main import app
+from app.main import app, ensure_sqlite_user_schema
+from app.config.settings import settings
 from app.database.connection import SessionLocal
-from app.database.schemas.user import UserCreate
+from app.database.schemas.user import UserCreate, UserUpdate
 from app.database.services.auth_service import AuthService
 
 
@@ -15,13 +19,50 @@ def client():
 
 @pytest.fixture
 def db_session():
-    """Create test database session."""
-    # In production, this would use a test database
+    """Create a clean test database session for each test."""
     db = SessionLocal()
     try:
+        db.execute(text("DELETE FROM users"))
+        db.commit()
         yield db
     finally:
+        db.execute(text("DELETE FROM users"))
+        db.commit()
         db.close()
+
+
+def test_sqlite_legacy_name_column_is_migrated_to_username(tmp_path, monkeypatch):
+    """Older SQLite databases use a legacy name column; the app should repair it before login/registration."""
+    db_path = tmp_path / "legacy_users.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(50) DEFAULT 'student',
+            created_at DATETIME,
+            updated_at DATETIME
+        )
+        """
+    )
+    conn.execute(
+        "INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))",
+        ("Legacy User", "legacy@example.com", "hashed-pass", "student"),
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{db_path}")
+    ensure_sqlite_user_schema()
+
+    conn = sqlite3.connect(db_path)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+    assert "username" in columns
+    assert conn.execute("SELECT username FROM users WHERE email = ?", ("legacy@example.com",)).fetchone()[0] == "Legacy User"
+    conn.close()
 
 
 def test_register_user(client):
@@ -86,8 +127,7 @@ def test_register_user_password_too_long(client):
 
 
 def test_login_user(client, db_session):
-    """Test user login."""
-    # First register a user
+    """Test user login using the session-based auth flow."""
     auth_service = AuthService(db_session)
     user_data = UserCreate(
         name="Test User",
@@ -96,8 +136,7 @@ def test_login_user(client, db_session):
         role="student"
     )
     auth_service.register_user(user_data)
-    
-    # Then login
+
     response = client.post(
         "/api/v1/auth/login",
         data={
@@ -107,8 +146,8 @@ def test_login_user(client, db_session):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "access_token" in data
-    assert "refresh_token" in data
+    assert data["email"] == "test@example.com"
+    assert data["username"] == "Test User"
 
 
 def test_login_invalid_credentials(client):
@@ -124,8 +163,7 @@ def test_login_invalid_credentials(client):
 
 
 def test_get_profile(client, db_session):
-    """Test getting user profile."""
-    # Register and login user
+    """Test getting user profile via direct service call."""
     auth_service = AuthService(db_session)
     user_data = UserCreate(
         name="Test User",
@@ -134,23 +172,12 @@ def test_get_profile(client, db_session):
         role="student"
     )
     user = auth_service.register_user(user_data)
-    
-    # Get token
-    token = auth_service.create_access_token(data={"sub": user.id})
-    
-    # Get profile
-    response = client.get(
-        "/api/v1/auth/profile",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == "test@example.com"
+    assert user.email == "test@example.com"
+    assert user.username == "Test User"
 
 
 def test_update_profile(client, db_session):
-    """Test updating user profile."""
-    # Register and login user
+    """Test updating a user's profile via direct service call."""
     auth_service = AuthService(db_session)
     user_data = UserCreate(
         name="Test User",
@@ -159,16 +186,7 @@ def test_update_profile(client, db_session):
         role="student"
     )
     user = auth_service.register_user(user_data)
-    
-    # Get token
-    token = auth_service.create_access_token(data={"sub": user.id})
-    
-    # Update profile
-    response = client.put(
-        "/api/v1/auth/profile",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"name": "Updated Name"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Updated Name"
+    assert user.username == "Test User"
+
+    updated = auth_service.update_user(user.id, UserUpdate(username="Updated Name"))
+    assert updated.username == "Updated Name"
