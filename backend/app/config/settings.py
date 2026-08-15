@@ -59,7 +59,6 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "https://ai-quiz-generator-orcin.vercel.app",
         "https://ai-quiz-generator.vercel.app",
-        "https://ai-quiz-generator-api.onrender.com",
         "https://ai-quizgenerator.onrender.com",
     ]
     

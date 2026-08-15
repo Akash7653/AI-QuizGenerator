@@ -27,7 +27,7 @@ services:
       - key: CELERY_RESULT_BACKEND
         sync: false
       - key: CORS_ORIGINS
-        value: "https://ai-quiz-generator.vercel.app,https://ai-quiz-generator-orcin.vercel.app,https://ai-quiz-generator-api.onrender.com,https://ai-quizgenerator.onrender.com,http://localhost:3000"
+        value: "https://ai-quiz-generator.vercel.app,https://ai-quiz-generator-orcin.vercel.app,https://ai-quizgenerator.onrender.com,http://localhost:3000,http://localhost:5173"
       - key: ENVIRONMENT
         value: "production"
       - key: DEBUG

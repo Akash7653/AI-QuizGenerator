@@ -68,16 +68,16 @@ export function Skeleton({ className = '' }: { className?: string }) {
 
 export function LoadingState({ label = 'Loading...' }: { label?: string }) {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center py-16">
+    <div className="flex min-h-screen items-center justify-center bg-ink-50/80 dark:bg-ink-950/80">
       <div className="flex flex-col items-center justify-center">
-        <div className="relative flex h-24 w-24 items-center justify-center">
-          <div className="absolute h-24 w-24 rounded-full bg-brand-200/70 dark:bg-brand-900/60 animate-ping" />
-          <div className="absolute h-16 w-16 rounded-full bg-brand-300/50 dark:bg-brand-800/60 animate-pulse" />
-          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/30 ring-4 ring-brand-100 dark:ring-brand-900/70">
+        <div className="relative flex h-28 w-28 items-center justify-center">
+          <div className="absolute h-28 w-28 rounded-full bg-brand-200/80 dark:bg-brand-900/70 animate-ping" />
+          <div className="absolute h-20 w-20 rounded-full bg-brand-300/60 dark:bg-brand-800/70 animate-pulse" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/30 ring-4 ring-brand-100 dark:ring-brand-900/70">
             <span className="text-2xl font-black text-white">Q</span>
           </div>
         </div>
-        {label && label !== 'Loading...' ? <p className="mt-4 text-base font-medium text-ink-500 dark:text-ink-400">{label}</p> : null}
+        {label && label !== 'Loading...' ? <p className="mt-5 text-base font-medium text-ink-500 dark:text-ink-400">{label}</p> : null}
       </div>
     </div>
   );

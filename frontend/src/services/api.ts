@@ -2,16 +2,13 @@ import axios from 'axios';
 
 const getApiBaseUrl = () => {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-  if (configuredBaseUrl) {
-    return configuredBaseUrl.replace(/\/+$/, '');
+  const baseUrl = configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, '') : 'http://localhost:8000';
+
+  if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+    return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
   }
 
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
-    return 'http://localhost:8000/api/v1';
-  }
-
-  return 'https://ai-quiz-generator-api.onrender.com/api/v1';
+  return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
 };
 
 const baseURL = getApiBaseUrl();
