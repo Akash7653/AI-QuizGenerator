@@ -26,11 +26,13 @@ const allNavItems = [
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isQuizInProgress = /^\/quiz\/[^/]+$/.test(location.pathname);
   const fullScreenGenerate = location.pathname === '/create-quiz' && sessionStorage.getItem('quizgen_generating') === '1';
+  const fullScreenLayout = fullScreenGenerate || isQuizInProgress;
 
   return (
     <div className="min-h-screen bg-ink-50 dark:bg-ink-950">
-      {!fullScreenGenerate && <Sidebar collapsed={false} />}
+      {!fullScreenLayout && <Sidebar collapsed={false} />}
 
       {/* Mobile menu drawer */}
       <AnimatePresence>
@@ -80,8 +82,8 @@ export function AppLayout() {
         )}
       </AnimatePresence>
 
-      <div className={`transition-all duration-300 ${fullScreenGenerate ? 'lg:ml-0' : 'lg:ml-64'}`}>
-        <TopNavbar onMobileMenu={() => setMobileMenuOpen(true)} />
+      <div className={`transition-all duration-300 ${fullScreenLayout ? 'lg:ml-0' : 'lg:ml-64'}`}>
+        {!isQuizInProgress && <TopNavbar onMobileMenu={() => setMobileMenuOpen(true)} />}
         <main className="min-h-[calc(100vh-4rem)] pb-20 lg:pb-8">
           <AnimatePresence mode="wait">
             <motion.div
