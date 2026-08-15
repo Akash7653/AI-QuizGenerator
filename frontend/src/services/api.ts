@@ -11,7 +11,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:8000/api/v1';
   }
 
-  return 'https://ai-quizgenerator.onrender.com/api/v1';
+  return 'https://ai-quiz-generator-api.onrender.com/api/v1';
 };
 
 const baseURL = getApiBaseUrl();

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Mail, Lock, User, ArrowRight, Check } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/common/Logo';
 
@@ -82,6 +82,12 @@ export function RegisterPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
+          <div className="mb-6">
+            <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline">
+              <ArrowLeft className="w-4 h-4" />
+              Home
+            </Link>
+          </div>
           <div className="lg:hidden mb-8">
             <Logo size="md" />
           </div>
