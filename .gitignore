@@ -52,4 +52,5 @@ node_modules/
 dist/
 
 # Vite
-.vite/
+.vite/backend/cookies.txt 
+backend/cookies.txt 
