@@ -75,14 +75,19 @@ export function QuizResultsPage() {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <motion.p
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className={`text-4xl sm:text-5xl font-extrabold leading-none ${getScoreColor(result.score)}`}
+              className="flex items-end justify-center gap-1 leading-none"
             >
-              {result.score}%
-            </motion.p>
+              <span className={`text-3xl sm:text-4xl font-extrabold ${getScoreColor(result.score)}`}>
+                {result.score}
+              </span>
+              <span className={`text-xl sm:text-2xl font-bold ${getScoreColor(result.score)}`}>
+                %
+              </span>
+            </motion.div>
             <p className="text-sm text-ink-500 mt-2">{getScoreLabel(result.score)}</p>
           </div>
         </div>

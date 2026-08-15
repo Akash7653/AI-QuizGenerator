@@ -1,3 +1,4 @@
+import os
 from typing import List
 from pydantic_settings import BaseSettings
 from pydantic import Field, validator
@@ -34,7 +35,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Google Gemini
-    GEMINI_API_KEY: str = Field(..., description="Google Gemini API key")
+    GEMINI_API_KEY: str = Field(default="", description="Google Gemini API key")
+    GOOGLE_API_KEY: str = Field(default="", description="Alias for Google AI API key")
     GEMINI_MODEL: str = "gemini-flash-latest"
     GEMINI_TEMPERATURE: float = 0.7
     GEMINI_MAX_TOKENS: int = 1024
@@ -95,6 +97,36 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+
+def get_gemini_api_key() -> str:
+    """Resolve a valid Gemini API key from either the app or Google alias names."""
+    candidates = [
+        getattr(settings, "GEMINI_API_KEY", ""),
+        getattr(settings, "GOOGLE_API_KEY", ""),
+        os.getenv("GEMINI_API_KEY", ""),
+        os.getenv("GOOGLE_API_KEY", ""),
+    ]
+
+    placeholder_values = {
+        "",
+        "your-gemini-api-key-here",
+        "your_api_key_here",
+        "placeholder",
+        "changeme",
+        "test",
+        "demo",
+    }
+
+    for value in candidates:
+        if not value:
+            continue
+        normalized = str(value).strip()
+        if normalized.lower() in placeholder_values:
+            continue
+        return normalized
+
+    return ""
 
 
 # Global settings instance

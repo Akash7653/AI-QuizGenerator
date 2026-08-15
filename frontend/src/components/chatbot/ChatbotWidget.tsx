@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageSquareText, Send, Sparkles, X, Bot, Loader2, ShieldAlert } from 'lucide-react';
+import { MessageSquareText, Send, Sparkles, X, Loader2, ShieldAlert } from 'lucide-react';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import chatbotImage from '../../../assets/chatbot_img.png';
 
 function RobotGlyph({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true" role="img">
-      <path d="M18 20h28a8 8 0 0 1 8 8v18a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8V28a8 8 0 0 1 8-8Z" fill="currentColor" opacity="0.14" />
-      <rect x="20" y="22" width="24" height="20" rx="6" fill="currentColor" opacity="0.92" />
-      <circle cx="27.5" cy="31" r="2.2" fill="#fff" />
-      <circle cx="36.5" cy="31" r="2.2" fill="#fff" />
-      <path d="M28 38c1.8 2 6.2 2 8 0" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <rect x="25" y="45" width="14" height="7" rx="3.5" fill="currentColor" opacity="0.8" />
-      <path d="M15 28h-6M49 28h6M19 48l-8 8M45 48l8 8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
-    </svg>
+    <img
+      src={chatbotImage}
+      alt="QuizBot"
+      className={`${className} object-cover rounded-full`}
+    />
   );
 }
 
@@ -115,11 +112,13 @@ export function ChatbotWidget() {
       });
 
       const botText = response.data?.response || response.data?.message || fallbackBotReply;
+      const fallbackText = response.data?.success === false && response.data?.message ? response.data.message : botText;
+
       setMessages((prev) => [
         ...prev,
         {
           id: `bot-${Date.now()}`,
-          text: botText,
+          text: fallbackText,
           sender: 'bot',
         },
       ]);
@@ -159,8 +158,8 @@ export function ChatbotWidget() {
           <div className="w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl dark:border-ink-800 dark:bg-ink-900">
             <div className="flex items-center justify-between border-b border-ink-200 bg-brand-600 px-4 py-3 text-white dark:border-ink-800">
               <div className="flex items-center gap-2">
-                <div className="rounded-full bg-white/15 p-1.5">
-                  <Bot className="h-4 w-4" />
+                <div className="overflow-hidden rounded-full bg-white/15 p-0.5">
+                  <img src={chatbotImage} alt="QuizBot" className="h-7 w-7 rounded-full object-cover" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">QuizBot</p>

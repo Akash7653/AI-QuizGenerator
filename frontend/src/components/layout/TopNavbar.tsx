@@ -6,6 +6,7 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { Logo } from '@/components/common/Logo';
 
 interface TopNavbarProps {
   onMobileMenu: () => void;
@@ -39,13 +40,16 @@ export function TopNavbar({ onMobileMenu }: TopNavbarProps) {
     <header className="sticky top-0 z-20 h-16 glass border-b border-white/30 dark:border-white/5 flex items-center justify-between px-4 sm:px-6">
       {/* Left: mobile menu + search */}
       <div className="flex items-center gap-3 flex-1">
-        <button
-          onClick={onMobileMenu}
-          className="lg:hidden p-2 rounded-lg text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <button
+            onClick={onMobileMenu}
+            className="p-2 rounded-lg text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Logo size="sm" />
+        </div>
         <div className="relative hidden sm:block flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
           <input
