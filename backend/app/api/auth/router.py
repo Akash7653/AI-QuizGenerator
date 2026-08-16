@@ -100,7 +100,7 @@ async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
-    """Login user and return user data (session-based auth)."""
+    """Login user and return user data (session-based auth with JWT fallback)."""
     auth_service = AuthService()
 
     identifier = form_data.username.strip()
@@ -118,6 +118,9 @@ async def login(
     print(f"[Auth] Setting session for user: {user.id}")
     request.session["user_id"] = str(user.id)
     
+    # Also create JWT token for compatibility with frontend
+    access_token = auth_service.create_access_token({"sub": str(user.id)})
+    
     print(f"[Auth] User logged in: {user.email}")
     
     # Return simple dict to avoid serialization issues
@@ -128,7 +131,8 @@ async def login(
         "is_active": user.is_active,
         "is_verified": user.is_verified,
         "created_at": user.created_at,
-        "updated_at": user.updated_at
+        "updated_at": user.updated_at,
+        "access_token": access_token  # For frontend compatibility
     }
 
 

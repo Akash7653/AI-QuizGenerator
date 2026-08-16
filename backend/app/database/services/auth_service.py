@@ -51,6 +51,13 @@ class AuthService:
             print(f"[AuthService] JWT decode error: {str(e)}")
             return None
     
+    def verify_token(self, token: str) -> Optional[str]:
+        """Verify JWT token and return user ID."""
+        payload = self.decode_token(token)
+        if payload:
+            return payload.get("sub")
+        return None
+    
     async def register_user(self, user_data: UserCreate) -> UserModel:
         """Register a new user."""
         username = getattr(user_data, 'username', None) or getattr(user_data, 'name', None)
