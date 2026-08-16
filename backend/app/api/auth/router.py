@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from app.database.schemas.user import (
@@ -19,10 +19,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    user_data: UserCreate,
-    request: Request
+    user_data: UserCreate
 ):
-    """Register a new user."""
+    """Register a new user and return JWT token (JWT-only authentication)."""
     auth_service = AuthService()
     
     try:
@@ -42,20 +41,20 @@ async def register(
         user = await auth_service.register_user(user_data)
         print(f"[Auth] User created successfully: {user.id}")
         
-        # Set session after registration - store string ID
-        request.session["user_id"] = str(user.id)
-        print(f"[Auth] Session set: {user.id}")
+        # Create JWT token for immediate authentication
+        access_token = auth_service.create_access_token({"sub": str(user.id)})
         
-        # Return simple dict to avoid serialization issues
-        print(f"[Auth] Returning user response")
+        print(f"[Auth] Returning user response with token")
         return {
             "id": str(user.id),
             "username": user.username,
             "email": user.email,
             "is_active": user.is_active,
             "is_verified": user.is_verified,
-            "created_at": user.created_at,
-            "updated_at": user.updated_at
+            "created_at": str(user.created_at),
+            "updated_at": str(user.updated_at),
+            "access_token": access_token,
+            "token_type": "bearer"
         }
     except ValueError as e:
         print(f"[Auth] Validation error: {str(e)}")
@@ -77,14 +76,15 @@ async def register(
 async def test_register(
     user_data: UserCreate
 ):
-    """Test registration without session."""
+    """Test registration - returns JWT token."""
     auth_service = AuthService()
     
     try:
         print(f"[Auth] Test registration - Email: {user_data.email}, Username: {user_data.username}")
         user = await auth_service.register_user(user_data)
+        access_token = auth_service.create_access_token({"sub": str(user.id)})
         print(f"[Auth] Test user created: {user.id}")
-        return {"message": "Test registration successful", "user_id": str(user.id)}
+        return {"message": "Test registration successful", "user_id": str(user.id), "access_token": access_token}
     except Exception as e:
         print(f"[Auth] Test registration error: {str(e)}")
         import traceback
@@ -100,7 +100,7 @@ async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
-    """Login user and return user data (session-based auth with JWT for compatibility)."""
+    """Login user and return JWT token (JWT-only authentication)."""
     auth_service = AuthService()
 
     identifier = form_data.username.strip()
@@ -114,16 +114,12 @@ async def login(
             detail="Incorrect email or password",
         )
     
-    # Set session
-    print(f"[Auth] Setting session for user: {user.id}")
-    request.session["user_id"] = str(user.id)
-    
-    # Create JWT token for frontend compatibility
+    # Create JWT token
     access_token = auth_service.create_access_token({"sub": str(user.id)})
     
     print(f"[Auth] User logged in: {user.email}")
     
-    # Return both session and JWT for compatibility
+    # Return JWT token for authentication
     return {
         "id": str(user.id),
         "username": user.username,
@@ -139,18 +135,11 @@ async def login(
 
 @router.post("/logout")
 async def logout(
-    request: Request,
     current_user: UserModel = Depends(get_current_user),
 ):
-    """Logout user by clearing session."""
-    request.session.pop("user_id", None)
+    """Logout user - client should clear JWT token."""
     print(f"[Auth] User logged out: {current_user.email}")
     return {"message": "Successfully logged out"}
-
-
-
-# Refresh endpoint is no longer needed with session-based auth
-# Sessions are automatically maintained by the browser
 
 
 @router.get("/profile", response_model=UserResponse)

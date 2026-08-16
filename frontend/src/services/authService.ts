@@ -53,7 +53,7 @@ const saveSession = (user: BackendUser): AuthSession => {
   const normalized = normalizeBackendUser(user);
   const session: AuthSession = {
     user: normalized,
-    token: 'session-auth',
+    token: user.access_token || 'session-auth',  // Use actual JWT token from backend
   };
 
   localStorage.setItem(AUTH_KEY, JSON.stringify(session));

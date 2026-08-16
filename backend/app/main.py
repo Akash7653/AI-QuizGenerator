@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 from app.config.settings import settings
 from app.middleware.cors import setup_cors
 from app.middleware.logging import setup_logging, LoggingMiddleware
@@ -27,19 +26,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json"
 )
 
-# Add session middleware BEFORE CORS (proper order for cookie handling)
-# Cross-site auth between Vercel and Render requires the session cookie to persist
-# across origins in production. Local development and TestClient must stay non-secure
-# so the cookie is preserved during normal http-based testing and local debugging.
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.SECRET_KEY,
-    same_site="lax",  # More lenient than "none" for better compatibility
-    https_only=False,  # Allow HTTP for development/testing
-    max_age=86400 * 7,  # 7 days instead of 1 day for better persistence
-)
-
-# Setup CORS after session middleware
+# Setup CORS for JWT authentication
 setup_cors(app)
 
 # Add custom middleware

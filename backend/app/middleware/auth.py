@@ -8,55 +8,58 @@ from app.database.services.auth_service import AuthService
 async def get_current_user(
     request: Request
 ) -> UserModel:
-    """Dependency to get current authenticated user from session or JWT token."""
+    """Dependency to get current authenticated user via JWT token only."""
     
-    # Try session-based auth first (primary method)
-    user_id = request.session.get("user_id")
-    
-    if user_id:
-        print(f"[Auth] Found user_id in session: {user_id}")
-        user_repo = UserRepository()
-        user_id_str = str(user_id) if not isinstance(user_id, str) else user_id
-        user = await user_repo.get_by_id(user_id_str)
-        
-        if user and user.is_active:
-            print(f"[Auth] User authenticated via session: {user.email}")
-            return user
-        else:
-            print(f"[Auth] Session user_id invalid or inactive")
-    
-    # Fallback to JWT token auth (for frontend compatibility)
+    # JWT token authentication only (more reliable for cross-origin)
     auth_header = request.headers.get("authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.replace("Bearer ", "")
-        print(f"[Auth] Attempting JWT auth with token: {token[:20]}...")
-        
-        # Skip obviously invalid tokens
-        if token in ["session-auth", "null", "undefined", ""]:
-            print(f"[Auth] Invalid token detected, skipping JWT auth")
-        else:
-            try:
-                auth_service = AuthService()
-                user_id = auth_service.verify_token(token)
-                
-                if user_id:
-                    user_repo = UserRepository()
-                    user = await user_repo.get_by_id(str(user_id))
-                    
-                    if user and user.is_active:
-                        print(f"[Auth] User authenticated via JWT: {user.email}")
-                        # Set session for future requests
-                        request.session["user_id"] = str(user.id)
-                        return user
-            except Exception as e:
-                print(f"[Auth] JWT validation failed: {str(e)}")
-                pass
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated - missing authorization header",
+        )
     
-    print(f"[Auth] No valid authentication found")
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Not authenticated",
-    )
+    token = auth_header.replace("Bearer ", "")
+    
+    # Skip obviously invalid tokens
+    if token in ["null", "undefined", ""]:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+    
+    try:
+        auth_service = AuthService()
+        user_id = auth_service.verify_token(token)
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token - no user ID",
+            )
+        
+        user_repo = UserRepository()
+        user = await user_repo.get_by_id(str(user_id))
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+        
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is inactive"
+            )
+        
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token: {str(e)}",
+        )
 
 
 async def get_current_active_user(

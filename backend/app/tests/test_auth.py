@@ -75,7 +75,7 @@ def test_register_user_password_too_long(client):
 
 
 def test_login_user(client):
-    """Test user login using the session-based auth flow."""
+    """Test user login using the JWT-based auth flow."""
     # First register
     register_response = client.post(
         "/api/v1/auth/register",

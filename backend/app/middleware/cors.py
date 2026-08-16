@@ -6,7 +6,7 @@ from app.config.settings import settings
 
 
 class CORSMiddlewareOverride(BaseHTTPMiddleware):
-    """Custom CORS middleware to ensure headers are added to ALL responses including errors."""
+    """Custom CORS middleware to ensure headers are added to ALL responses including errors for JWT auth."""
     
     async def dispatch(self, request: Request, call_next):
         # Handle preflight OPTIONS requests
@@ -26,7 +26,6 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
                 if origin in allowed_origins:
                     response = Response()
                     response.headers["Access-Control-Allow-Origin"] = origin
-                    response.headers["Access-Control-Allow-Credentials"] = "true"
                     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
                     response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept, origin"
                     response.headers["Access-Control-Max-Age"] = "600"
@@ -53,7 +52,6 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
                 if origin in allowed_origins:
                     response = Response(content=f"Internal Server Error: {str(e)}", status_code=500)
                     response.headers["Access-Control-Allow-Origin"] = origin
-                    response.headers["Access-Control-Allow-Credentials"] = "true"
                     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
                     response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept, origin"
                     return response
@@ -74,7 +72,6 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
             
             if origin in allowed_origins:
                 response.headers["Access-Control-Allow-Origin"] = origin
-                response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
                 response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept, origin"
         
@@ -82,8 +79,8 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
 
 
 def setup_cors(app: FastAPI):
-    """Setup CORS middleware with proper credential support for session-based auth."""
-    # Use specific origins instead of "*" when using credentials (session cookies)
+    """Setup CORS middleware with proper credential support for JWT authentication."""
+    # Use specific origins instead of "*" when using credentials
     origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
         "http://localhost:3000",
         "http://localhost:4174",
@@ -108,7 +105,7 @@ def setup_cors(app: FastAPI):
         CORSMiddleware,
         allow_origins=origins,
         allow_origin_regex=lan_origin_regex,
-        allow_credentials=True,
+        allow_credentials=False,  # JWT doesn't need credentials
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
     )
