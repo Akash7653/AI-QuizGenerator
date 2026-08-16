@@ -103,11 +103,7 @@ def setup_cors(app: FastAPI):
         r"^https://.*\\.(vercel\\.app|onrender\\.com)$"
     )
 
-    # Add custom middleware FIRST (will be last in the middleware chain)
-    # This ensures it handles preflight requests and adds CORS to error responses
-    app.add_middleware(CORSMiddlewareOverride)
-    
-    # Then add FastAPI's CORS middleware
+    # Add FastAPI's CORS middleware first
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -116,3 +112,6 @@ def setup_cors(app: FastAPI):
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
     )
+    
+    # Add custom middleware to ensure CORS headers on error responses
+    app.add_middleware(CORSMiddlewareOverride)

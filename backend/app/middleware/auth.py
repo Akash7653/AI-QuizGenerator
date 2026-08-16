@@ -8,7 +8,7 @@ from app.database.services.auth_service import AuthService
 async def get_current_user(
     request: Request
 ) -> UserModel:
-    """Dependency to get current authenticated user from session."""
+    """Dependency to get current authenticated user from session or JWT token."""
     
     # Try session-based auth first
     user_id = request.session.get("user_id")
@@ -21,7 +21,7 @@ async def get_current_user(
         if user and user.is_active:
             return user
     
-    # Try JWT token auth as fallback (for compatibility during transition)
+    # Fallback to JWT token auth (for frontend compatibility)
     auth_header = request.headers.get("authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.replace("Bearer ", "")
@@ -38,14 +38,8 @@ async def get_current_user(
                     request.session["user_id"] = str(user.id)
                     return user
         except Exception as e:
-            # JWT validation failed - might be old token format
             print(f"[Auth] JWT validation failed: {str(e)}")
             pass
-    
-    # If neither works, check if there's a legacy token pattern in headers
-    # This is a temporary compatibility measure
-    if not user_id:
-        print(f"[Auth] No valid authentication found")
     
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

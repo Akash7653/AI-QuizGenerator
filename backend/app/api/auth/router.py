@@ -100,7 +100,7 @@ async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
-    """Login user and return user data (session-based auth with JWT fallback)."""
+    """Login user and return user data (session-based auth with JWT for compatibility)."""
     auth_service = AuthService()
 
     identifier = form_data.username.strip()
@@ -123,7 +123,7 @@ async def login(
     
     print(f"[Auth] User logged in: {user.email}")
     
-    # Return simple dict with JWT token
+    # Return both session and JWT for compatibility
     return {
         "id": str(user.id),
         "username": user.username,
