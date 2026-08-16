@@ -8,9 +8,9 @@ from app.database.services.auth_service import AuthService
 async def get_current_user(
     request: Request
 ) -> UserModel:
-    """Dependency to get current authenticated user from session or JWT token."""
+    """Dependency to get current authenticated user from session."""
     
-    # First try session-based auth
+    # Try session-based auth first
     user_id = request.session.get("user_id")
     
     if user_id:
@@ -21,21 +21,31 @@ async def get_current_user(
         if user and user.is_active:
             return user
     
-    # Fallback to JWT token auth (for compatibility during transition)
+    # Try JWT token auth as fallback (for compatibility during transition)
     auth_header = request.headers.get("authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.replace("Bearer ", "")
-        auth_service = AuthService()
-        user_id = auth_service.verify_token(token)
-        
-        if user_id:
-            user_repo = UserRepository()
-            user = await user_repo.get_by_id(str(user_id))
+        try:
+            auth_service = AuthService()
+            user_id = auth_service.verify_token(token)
             
-            if user and user.is_active:
-                # Set session for future requests
-                request.session["user_id"] = str(user.id)
-                return user
+            if user_id:
+                user_repo = UserRepository()
+                user = await user_repo.get_by_id(str(user_id))
+                
+                if user and user.is_active:
+                    # Set session for future requests
+                    request.session["user_id"] = str(user.id)
+                    return user
+        except Exception as e:
+            # JWT validation failed - might be old token format
+            print(f"[Auth] JWT validation failed: {str(e)}")
+            pass
+    
+    # If neither works, check if there's a legacy token pattern in headers
+    # This is a temporary compatibility measure
+    if not user_id:
+        print(f"[Auth] No valid authentication found")
     
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

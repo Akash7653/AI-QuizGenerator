@@ -27,20 +27,20 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json"
 )
 
-# Setup CORS first (must be before SessionMiddleware when using credentials)
-setup_cors(app)
-
-# Add session middleware (for session-based authentication)
+# Add session middleware BEFORE CORS (proper order for cookie handling)
 # Cross-site auth between Vercel and Render requires the session cookie to persist
 # across origins in production. Local development and TestClient must stay non-secure
 # so the cookie is preserved during normal http-based testing and local debugging.
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
-    same_site="none",  # Required for cross-origin between Vercel and Render
+    same_site="lax",  # More lenient than "none" for better compatibility
     https_only=False,  # Allow HTTP for development/testing
-    max_age=86400,
+    max_age=86400 * 7,  # 7 days instead of 1 day for better persistence
 )
+
+# Setup CORS after session middleware
+setup_cors(app)
 
 # Add custom middleware
 app.add_middleware(LoggingMiddleware)

@@ -114,25 +114,26 @@ async def login(
             detail="Incorrect email or password",
         )
     
-    # Set session instead of returning tokens - store string ID
+    # Set session
     print(f"[Auth] Setting session for user: {user.id}")
     request.session["user_id"] = str(user.id)
     
-    # Also create JWT token for compatibility with frontend
+    # Create JWT token for frontend compatibility
     access_token = auth_service.create_access_token({"sub": str(user.id)})
     
     print(f"[Auth] User logged in: {user.email}")
     
-    # Return simple dict to avoid serialization issues
+    # Return simple dict with JWT token
     return {
         "id": str(user.id),
         "username": user.username,
         "email": user.email,
         "is_active": user.is_active,
         "is_verified": user.is_verified,
-        "created_at": user.created_at,
-        "updated_at": user.updated_at,
-        "access_token": access_token  # For frontend compatibility
+        "created_at": str(user.created_at),
+        "updated_at": str(user.updated_at),
+        "access_token": access_token,
+        "token_type": "bearer"
     }
 
 
