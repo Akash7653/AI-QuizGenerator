@@ -1,16 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
-from app.database.connection import get_db
 from app.database.schemas.admin import (
     SystemHealthResponse, UserManagementResponse, QuizManagementResponse,
     AdminDashboardResponse, SystemLogsResponse, BulkActionRequest, BulkActionResponse
 )
-from app.database.models.user import User
+from app.database.mongodb_models import UserModel, QuizModel, QuestionModel
 from app.middleware.auth import get_current_admin_user
-from app.database.repository import UserRepository, QuizRepository, QuestionRepository
-from app.database.models.quiz import Quiz
-from app.database.models.question import Question
+from app.database.repository.user_repository import UserRepository
+from app.database.repository.quiz_repository import QuizRepository
+from app.database.repository.question_repository import QuestionRepository
 import psutil
 import os
 from datetime import datetime
@@ -20,27 +18,26 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 @router.get("/dashboard", response_model=AdminDashboardResponse)
 async def get_admin_dashboard(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Get admin dashboard data."""
-    user_repo = UserRepository(db)
-    quiz_repo = QuizRepository(db)
-    
+    user_repo = UserRepository()
+    quiz_repo = QuizRepository()
+
     # Get user statistics
-    user_stats = user_repo.get_user_stats()
-    
+    user_stats = await user_repo.get_user_stats()
+
     # Get quiz statistics
-    quiz_stats = quiz_repo.get_quiz_stats()
-    
+    quiz_stats = await quiz_repo.get_quiz_stats()
+
     # Get recent activities (simplified)
     recent_activities = []
-    
+
     # Get top performers
-    from app.database.repository import AnalyticsRepository
-    analytics_repo = AnalyticsRepository(db)
-    top_performers = analytics_repo.get_top_performers(10)
-    
+    from app.database.repository.analytics_repository import AnalyticsRepository
+    analytics_repo = AnalyticsRepository()
+    top_performers = await analytics_repo.get_top_performers(10)
+
     return AdminDashboardResponse(
         total_users=user_stats["total_users"],
         active_users=user_stats["active_users"],
@@ -59,16 +56,15 @@ async def get_admin_dashboard(
 async def get_all_users(
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Get all users (admin only)."""
-    user_repo = UserRepository(db)
-    users = user_repo.get_all(skip=skip, limit=limit)
-    
+    user_repo = UserRepository()
+    users = await user_repo.get_all(skip=skip, limit=limit)
+
     return [
         UserManagementResponse(
-            id=user.id,
+            id=str(user.id),
             username=user.username,
             email=user.email,
             role=user.role.value,
@@ -86,16 +82,15 @@ async def get_all_users(
 async def get_all_quizzes(
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Get all quizzes (admin only)."""
-    quiz_repo = QuizRepository(db)
-    quizzes = quiz_repo.get_all(skip=skip, limit=limit)
-    
+    quiz_repo = QuizRepository()
+    quizzes = await quiz_repo.get_all(skip=skip, limit=limit)
+
     return [
         QuizManagementResponse(
-            id=quiz.id,
+            id=str(quiz.id),
             user_id=quiz.user_id,
             user_name="",  # Would need to join with users
             title=quiz.title,
@@ -110,38 +105,38 @@ async def get_all_quizzes(
 
 @router.get("/system", response_model=SystemHealthResponse)
 async def get_system_health(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Get system health status."""
     # Check database connection
+    from app.database.mongodb_connection import get_database
     db_connected = True
     try:
-        db.execute("SELECT 1")
+        await get_database()
     except:
         db_connected = False
-    
+
     # Check Redis connection
     from app.utils.cache import cache
     redis_connected = cache.is_available()
-    
+
     # Check Celery (simplified)
     celery_running = True  # Would need proper check
-    
+
     # Get counts
-    user_repo = UserRepository(db)
-    quiz_repo = QuizRepository(db)
-    question_repo = QuestionRepository(db)
-    
-    total_users = user_repo.count()
-    total_quizzes = quiz_repo.count()
-    total_questions = question_repo.count()
-    
+    user_repo = UserRepository()
+    quiz_repo = QuizRepository()
+    question_repo = QuestionRepository()
+
+    total_users = await user_repo.count()
+    total_quizzes = await quiz_repo.count()
+    total_questions = await question_repo.count()
+
     # System stats
     cpu_usage = psutil.cpu_percent()
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
-    
+
     return SystemHealthResponse(
         status="healthy" if db_connected and redis_connected else "degraded",
         database_connected=db_connected,
@@ -168,82 +163,79 @@ async def get_system_health(
 
 @router.delete("/user/{user_id}")
 async def delete_user(
-    user_id: int,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    user_id: str,
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Delete a user (admin only)."""
-    user_repo = UserRepository(db)
-    
-    user = user_repo.get_by_id(user_id)
+    user_repo = UserRepository()
+
+    user = await user_repo.get_by_id(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     # Prevent deleting admin users
     if user.role.value == "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot delete admin users"
         )
-    
-    success = user_repo.delete(user_id)
+
+    success = await user_repo.delete(user_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete user"
         )
-    
+
     return {"message": "User deleted successfully"}
 
 
 @router.delete("/quiz/{quiz_id}")
 async def delete_quiz(
-    quiz_id: int,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    quiz_id: str,
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Delete a quiz (admin only)."""
-    quiz_repo = QuizRepository(db)
-    
-    quiz = quiz_repo.get_by_id(quiz_id)
+    quiz_repo = QuizRepository()
+
+    quiz = await quiz_repo.get_by_id(quiz_id)
     if not quiz:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Quiz not found"
         )
-    
-    success = quiz_repo.delete(quiz_id)
+
+    success = await quiz_repo.delete(quiz_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete quiz"
         )
-    
+
     return {"message": "Quiz deleted successfully"}
 
 
 @router.post("/bulk-action", response_model=BulkActionResponse)
 async def bulk_action(
     request: BulkActionRequest,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Perform bulk actions on entities."""
     failed_ids = []
     errors = []
     success_count = 0
-    
+
     try:
         if request.entity_type == "user":
-            user_repo = UserRepository(db)
+            user_repo = UserRepository()
             if request.action == "delete":
                 for user_id in request.entity_ids:
-                    user = user_repo.get_by_id(user_id)
+                    user = await user_repo.get_by_id(user_id)
                     if user and user.role.value != "admin":
-                        if user_repo.delete(user_id):
+                        if await user_repo.delete(user_id):
                             success_count += 1
                         else:
                             failed_ids.append(user_id)
@@ -253,7 +245,7 @@ async def bulk_action(
                         errors.append(f"Cannot delete admin user {user_id}")
             elif request.action == "activate":
                 for user_id in request.entity_ids:
-                    user = user_repo.activate_user(user_id)
+                    user = await user_repo.activate_user(user_id)
                     if user:
                         success_count += 1
                     else:
@@ -261,35 +253,35 @@ async def bulk_action(
                         errors.append(f"Failed to activate user {user_id}")
             elif request.action == "deactivate":
                 for user_id in request.entity_ids:
-                    user = user_repo.deactivate_user(user_id)
+                    user = await user_repo.deactivate_user(user_id)
                     if user:
                         success_count += 1
                     else:
                         failed_ids.append(user_id)
                         errors.append(f"Failed to deactivate user {user_id}")
-        
+
         elif request.entity_type == "quiz":
-            quiz_repo = QuizRepository(db)
+            quiz_repo = QuizRepository()
             if request.action == "delete":
                 for quiz_id in request.entity_ids:
-                    if quiz_repo.delete(quiz_id):
+                    if await quiz_repo.delete(quiz_id):
                         success_count += 1
                     else:
                         failed_ids.append(quiz_id)
                         errors.append(f"Failed to delete quiz {quiz_id}")
-        
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unsupported entity type: {request.entity_type}"
             )
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Bulk action failed: {str(e)}"
         )
-    
+
     return BulkActionResponse(
         success_count=success_count,
         failed_count=len(failed_ids),
@@ -302,7 +294,7 @@ async def bulk_action(
 async def get_system_logs(
     page: int = 1,
     page_size: int = 50,
-    current_user: User = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Get system logs (admin only)."""
     # This would read from log files
@@ -334,18 +326,17 @@ async def get_system_logs(
 
 @router.get("/stats")
 async def get_admin_stats(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_admin_user)
 ):
     """Get administrative statistics."""
-    user_repo = UserRepository(db)
-    quiz_repo = QuizRepository(db)
-    question_repo = QuestionRepository(db)
-    
+    user_repo = UserRepository()
+    quiz_repo = QuizRepository()
+    question_repo = QuestionRepository()
+
     return {
-        "users": user_repo.get_user_stats(),
-        "quizzes": quiz_repo.get_quiz_stats(),
-        "questions": question_repo.get_question_stats(),
+        "users": await user_repo.get_user_stats(),
+        "quizzes": await quiz_repo.get_quiz_stats(),
+        "questions": await question_repo.get_question_stats(),
         "system": {
             "cpu_usage": psutil.cpu_percent(),
             "memory_usage": psutil.virtual_memory().percent,

@@ -1,114 +1,103 @@
 from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, func
-from app.database.models.analytics import Analytics
+from app.database.mongodb_models import AnalyticsModel, UserModel
 from app.database.repository.base import BaseRepository
 
 
-class AnalyticsRepository(BaseRepository[Analytics]):
+class AnalyticsRepository(BaseRepository[AnalyticsModel]):
     """Repository for Analytics model."""
     
-    def __init__(self, db: Session):
-        super().__init__(Analytics, db)
+    def __init__(self):
+        super().__init__(AnalyticsModel)
     
-    def get_by_user_id(self, user_id: int) -> Optional[Analytics]:
+    async def get_by_user_id(self, user_id: int) -> Optional[AnalyticsModel]:
         """Get analytics by user ID."""
-        return self.db.query(Analytics).filter(Analytics.user_id == user_id).first()
+        return await self.model.find_one(self.model.user_id == user_id)
     
-    def create_or_update(self, user_id: int, analytics_data: Dict[str, Any]) -> Analytics:
+    async def create_or_update(self, user_id: int, analytics_data: Dict[str, Any]) -> AnalyticsModel:
         """Create or update analytics for user."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         
         if analytics:
-            return self.update(analytics, analytics_data)
+            return await self.update(analytics, analytics_data)
         else:
             analytics_data['user_id'] = user_id
-            return self.create(analytics_data)
+            return await self.create(analytics_data)
     
-    def update_topic_performance(self, user_id: int, topic_performance: Dict[str, Any]) -> Optional[Analytics]:
+    async def update_topic_performance(self, user_id: int, topic_performance: Dict[str, Any]) -> Optional[AnalyticsModel]:
         """Update topic performance for user."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.topic_performance = topic_performance
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def update_difficulty_performance(self, user_id: int, difficulty_performance: Dict[str, Any]) -> Optional[Analytics]:
+    async def update_difficulty_performance(self, user_id: int, difficulty_performance: Dict[str, Any]) -> Optional[AnalyticsModel]:
         """Update difficulty performance for user."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.difficulty_performance = difficulty_performance
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def update_learning_curve(self, user_id: int, learning_curve: List[Dict[str, Any]]) -> Optional[Analytics]:
+    async def update_learning_curve(self, user_id: int, learning_curve: List[Dict[str, Any]]) -> Optional[AnalyticsModel]:
         """Update learning curve for user."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.learning_curve = learning_curve
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def update_weak_areas(self, user_id: int, weak_areas: List[str]) -> Optional[Analytics]:
+    async def update_weak_areas(self, user_id: int, weak_areas: List[str]) -> Optional[AnalyticsModel]:
         """Update weak areas for user."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.weak_areas = weak_areas
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def update_strong_areas(self, user_id: int, strong_areas: List[str]) -> Optional[Analytics]:
+    async def update_strong_areas(self, user_id: int, strong_areas: List[str]) -> Optional[AnalyticsModel]:
         """Update strong areas for user."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.strong_areas = strong_areas
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def increment_quiz_attempted(self, user_id: int) -> Optional[Analytics]:
+    async def increment_quiz_attempted(self, user_id: int) -> Optional[AnalyticsModel]:
         """Increment total quizzes attempted."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.total_quizzes_attempted += 1
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def increment_questions_attempted(self, user_id: int, count: int = 1) -> Optional[Analytics]:
+    async def increment_questions_attempted(self, user_id: int, count: int = 1) -> Optional[AnalyticsModel]:
         """Increment total questions attempted."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.total_questions_attempted += count
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def increment_correct_answers(self, user_id: int, count: int = 1) -> Optional[Analytics]:
+    async def increment_correct_answers(self, user_id: int, count: int = 1) -> Optional[AnalyticsModel]:
         """Increment correct answers count."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.total_correct += count
             self._recalculate_accuracy(analytics)
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def increment_wrong_answers(self, user_id: int, count: int = 1) -> Optional[Analytics]:
+    async def increment_wrong_answers(self, user_id: int, count: int = 1) -> Optional[AnalyticsModel]:
         """Increment wrong answers count."""
-        analytics = self.get_by_user_id(user_id)
+        analytics = await self.get_by_user_id(user_id)
         if analytics:
             analytics.total_wrong += count
             self._recalculate_accuracy(analytics)
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
         return analytics
     
-    def _recalculate_accuracy(self, analytics: Analytics) -> None:
+    def _recalculate_accuracy(self, analytics: AnalyticsModel) -> None:
         """Recalculate overall accuracy."""
         total_answered = analytics.total_correct + analytics.total_wrong
         if total_answered > 0:
@@ -116,35 +105,25 @@ class AnalyticsRepository(BaseRepository[Analytics]):
         else:
             analytics.overall_accuracy = 0.0
     
-    def get_top_performers(self, limit: int = 10) -> List[Analytics]:
+    async def get_top_performers(self, limit: int = 10) -> List[AnalyticsModel]:
         """Get top performers by accuracy."""
-        return self.db.query(Analytics).order_by(
-            Analytics.overall_accuracy.desc()
-        ).limit(limit).all()
+        return await self.model.find().sort(-self.model.overall_accuracy).limit(limit).to_list()
     
-    def get_leaderboard(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+    async def get_leaderboard(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
         """Get leaderboard with user details."""
-        from app.database.models.user import User
+        analytics_list = await self.model.find().sort(-self.model.overall_accuracy).skip(skip).limit(limit).to_list()
         
-        results = self.db.query(
-            Analytics,
-            User.username,
-            User.email
-        ).join(
-            User,
-            Analytics.user_id == User.id
-        ).order_by(
-            Analytics.overall_accuracy.desc()
-        ).offset(skip).limit(limit).all()
-
-        return [
-            {
-                "user_id": analytics.user_id,
-                "username": username,
-                "email": email,
-                "overall_accuracy": analytics.overall_accuracy,
-                "total_quizzes_attempted": analytics.total_quizzes_attempted,
-                "total_questions_attempted": analytics.total_questions_attempted
-            }
-            for analytics, username, email in results
-        ]
+        result = []
+        for analytics in analytics_list:
+            user = await UserModel.find_one(UserModel.id == analytics.user_id)
+            if user:
+                result.append({
+                    "user_id": analytics.user_id,
+                    "username": user.username,
+                    "email": user.email,
+                    "overall_accuracy": analytics.overall_accuracy,
+                    "total_quizzes_attempted": analytics.total_quizzes_attempted,
+                    "total_questions_attempted": analytics.total_questions_attempted
+                })
+        
+        return result

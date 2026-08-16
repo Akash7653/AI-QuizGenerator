@@ -2,10 +2,9 @@ from typing import Optional, Dict, Any
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
 from app.config.settings import settings
-from app.database.models.user import User, UserRole
-from app.database.repository import UserRepository
+from app.database.mongodb_models import UserModel, UserRole
+from app.database.repository.user_repository import UserRepository
 from app.database.schemas.user import UserCreate, UserUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -14,9 +13,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class AuthService:
     """Authentication service for user management and JWT operations."""
     
-    def __init__(self, db: Session):
-        self.db = db
-        self.user_repository = UserRepository(db)
+    def __init__(self):
+        self.user_repository = UserRepository()
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
@@ -53,17 +51,17 @@ class AuthService:
             print(f"[AuthService] JWT decode error: {str(e)}")
             return None
     
-    def register_user(self, user_data: UserCreate) -> User:
+    async def register_user(self, user_data: UserCreate) -> UserModel:
         """Register a new user."""
         username = getattr(user_data, 'username', None) or getattr(user_data, 'name', None)
         if not username:
             raise ValueError("Username is required")
 
-        existing_user = self.user_repository.get_by_email(user_data.email)
+        existing_user = await self.user_repository.get_by_email(user_data.email)
         if existing_user:
             raise ValueError("User with this email already exists")
 
-        existing_username = self.user_repository.get_by_username(username)
+        existing_username = await self.user_repository.get_by_username(username)
         if existing_username:
             raise ValueError("Username is already taken")
 
@@ -73,18 +71,18 @@ class AuthService:
         user_dict['username'] = username
         user_dict['password'] = hashed_password
 
-        user = self.user_repository.create(user_dict)
+        user = await self.user_repository.create(user_dict)
         return user
     
-    def authenticate_user(self, identifier: str, password: str) -> Optional[User]:
+    async def authenticate_user(self, identifier: str, password: str) -> Optional[UserModel]:
         """Authenticate a user by either email or username."""
         user = None
         if identifier and '@' in identifier:
-            user = self.user_repository.get_by_email(identifier)
+            user = await self.user_repository.get_by_email(identifier)
         if user is None:
-            user = self.user_repository.get_by_username(identifier)
+            user = await self.user_repository.get_by_username(identifier)
         if user is None:
-            user = self.user_repository.get_by_email(identifier)
+            user = await self.user_repository.get_by_email(identifier)
         if not user:
             return None
         if not self.verify_password(password, user.password):
@@ -93,7 +91,7 @@ class AuthService:
             return None
         return user
     
-    def get_current_user(self, token: str) -> Optional[User]:
+    async def get_current_user(self, token: str) -> Optional[UserModel]:
         """Get current user from JWT token."""
         print(f"[AuthService] get_current_user called with token: {token[:20] if token else 'None'}...")
         
@@ -111,7 +109,7 @@ class AuthService:
             print(f"[AuthService] user_id is None in payload")
             return None
         
-        user = self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_by_id(user_id)
         print(f"[AuthService] User lookup result: {user}")
         
         if user is None:
@@ -121,31 +119,31 @@ class AuthService:
         print(f"[AuthService] Returning user: {user.email}")
         return user
     
-    def update_user(self, user_id: int, user_data: UserUpdate) -> Optional[User]:
+    async def update_user(self, user_id: int, user_data: UserUpdate) -> Optional[UserModel]:
         """Update user information."""
-        user = self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_by_id(user_id)
         if not user:
             return None
 
         update_data = user_data.model_dump(exclude_unset=True)
         if 'username' in update_data and update_data['username']:
-            existing_username = self.user_repository.get_by_username(update_data['username'])
+            existing_username = await self.user_repository.get_by_username(update_data['username'])
             if existing_username and existing_username.id != user_id:
                 raise ValueError("Username is already taken")
 
         if 'email' in update_data and update_data['email']:
-            return self.user_repository.update_email(user_id, str(update_data['email']))
-        return self.user_repository.update(user, update_data)
+            return await self.user_repository.update_email(user_id, str(update_data['email']))
+        return await self.user_repository.update(user, update_data)
 
-    def change_email(self, user_id: int, new_email: str) -> Optional[User]:
+    async def change_email(self, user_id: int, new_email: str) -> Optional[UserModel]:
         """Change the current user's email address."""
-        if self.user_repository.get_by_email(new_email):
+        if await self.user_repository.get_by_email(new_email):
             raise ValueError("User with this email already exists")
-        return self.user_repository.update_email(user_id, new_email)
+        return await self.user_repository.update_email(user_id, new_email)
     
-    def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
+    async def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
         """Change user password."""
-        user = self.user_repository.get_by_id(user_id)
+        user = await self.user_repository.get_by_id(user_id)
         if not user:
             return False
         
@@ -153,21 +151,21 @@ class AuthService:
             return False
         
         hashed_password = self.get_password_hash(new_password)
-        self.user_repository.update_password(user_id, hashed_password)
+        await self.user_repository.update_password(user_id, hashed_password)
         return True
     
-    def verify_email(self, user_id: int) -> Optional[User]:
+    async def verify_email(self, user_id: int) -> Optional[UserModel]:
         """Verify user email."""
-        return self.user_repository.verify_user(user_id)
+        return await self.user_repository.verify_user(user_id)
     
-    def is_admin(self, user: User) -> bool:
+    def is_admin(self, user: UserModel) -> bool:
         """Check if user is admin."""
         return user.role == UserRole.ADMIN
     
-    def is_teacher(self, user: User) -> bool:
+    def is_teacher(self, user: UserModel) -> bool:
         """Check if user is teacher."""
         return user.role == UserRole.TEACHER
     
-    def is_student(self, user: User) -> bool:
+    def is_student(self, user: UserModel) -> bool:
         """Check if user is student."""
         return user.role == UserRole.STUDENT

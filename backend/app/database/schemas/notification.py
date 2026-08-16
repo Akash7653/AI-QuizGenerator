@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from app.database.models.notification import NotificationType
+from app.database.mongodb_models import NotificationType
 
 
 class NotificationBase(BaseModel):

@@ -1,26 +1,25 @@
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from loguru import logger
-from app.database.models.analytics import Analytics
-from app.database.models.quiz_attempt import QuizAttempt, AttemptStatus
-from app.database.repository import AnalyticsRepository, QuizAttemptRepository, QuestionRepository
+from app.database.mongodb_models import AnalyticsModel, QuizAttemptModel, AttemptStatus
+from app.database.repository.analytics_repository import AnalyticsRepository
+from app.database.repository.quiz_repository import QuizAttemptRepository
+from app.database.repository.question_repository import QuestionRepository
 from app.database.schemas.analytics import AnalyticsUpdate
 
 
 class AnalyticsService:
     """Service for analytics and performance tracking."""
     
-    def __init__(self, db: Session):
+    def __init__(self):
         """Initialize analytics service."""
-        self.db = db
-        self.analytics_repository = AnalyticsRepository(db)
-        self.quiz_attempt_repository = QuizAttemptRepository(db)
-        self.question_repository = QuestionRepository(db)
+        self.analytics_repository = AnalyticsRepository()
+        self.quiz_attempt_repository = QuizAttemptRepository()
+        self.question_repository = QuestionRepository()
     
-    def get_user_analytics(self, user_id: int) -> Analytics:
+    async def get_user_analytics(self, user_id: int) -> AnalyticsModel:
         """Get or create analytics for user."""
-        analytics = self.analytics_repository.get_by_user_id(user_id)
+        analytics = await self.analytics_repository.get_by_user_id(user_id)
         
         if not analytics:
             # Create initial analytics
@@ -37,16 +36,16 @@ class AnalyticsService:
                 "weak_areas": [],
                 "strong_areas": []
             }
-            analytics = self.analytics_repository.create(analytics_data)
+            analytics = await self.analytics_repository.create(analytics_data)
 
         # Backfill analytics from real historical attempts so already-existing users
         # with prior quiz data are not stuck at zero values after login.
-        self._sync_analytics_from_attempts(user_id, analytics)
+        await self._sync_analytics_from_attempts(user_id, analytics)
         return analytics
 
-    def _sync_analytics_from_attempts(self, user_id: int, analytics: Analytics) -> None:
+    async def _sync_analytics_from_attempts(self, user_id: int, analytics: AnalyticsModel) -> None:
         """Recalculate analytics from the user's completed quiz attempts."""
-        attempts = self.quiz_attempt_repository.get_by_user_id(user_id, 0, 500)
+        attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 500)
         if not attempts:
             return
 
@@ -61,17 +60,19 @@ class AnalyticsService:
                 continue
             if attempt.quiz_id:
                 try:
-                    from app.database.repository import QuizRepository
-                    quiz_repo = QuizRepository(self.db)
-                    quiz_questions = quiz_repo.get_quiz_questions(attempt.quiz_id)
-                    for quiz_question in quiz_questions:
-                        question = quiz_question.question
-                        topic = question.topic or "general"
+                    from app.database.repository.quiz_repository import QuizRepository
+                    quiz_repo = QuizRepository()
+                    quiz_question_ids = await quiz_repo.get_quiz_questions(attempt.quiz_id)
+                    for question_id in quiz_question_ids:
+                        question = await self.question_repository.get_by_id(question_id)
+                        if not question:
+                            continue
+                        topic = question.subtopic or "general"
                         if topic not in topic_performance:
                             topic_performance[topic] = {"total_questions": 0, "correct_answers": 0, "accuracy": 0.0}
 
                         topic_performance[topic]["total_questions"] += 1
-                        user_answer = attempt.answers.get(str(question.id)) if attempt.answers else None
+                        user_answer = attempt.answers.get(str(question_id)) if attempt.answers else None
                         if user_answer and user_answer == question.correct_answer:
                             topic_performance[topic]["correct_answers"] += 1
                 except Exception:
@@ -100,16 +101,15 @@ class AnalyticsService:
                 topic for topic, data in (analytics.topic_performance or {}).items()
                 if data.get("accuracy", 0) > 80 and data.get("total_questions", 0) >= 3
             ]
-            self.db.commit()
-            self.db.refresh(analytics)
+            await analytics.save()
     
-    def update_analytics_after_quiz(self, attempt: QuizAttempt) -> Analytics:
+    async def update_analytics_after_quiz(self, attempt: QuizAttemptModel) -> AnalyticsModel:
         """Update analytics after quiz completion."""
         logger.info(f"Updating analytics for user {attempt.user_id} after quiz {attempt.quiz_id}")
 
         # Recalculate from the actual attempt history so existing users are not
         # double-counted while still keeping newly-finished attempts in sync.
-        analytics = self.get_user_analytics(attempt.user_id)
+        analytics = await self.get_user_analytics(attempt.user_id)
 
         # Add the latest performance point without duplicating the finished quiz.
         if not analytics.learning_curve or analytics.learning_curve[-1].get("quiz_id") != attempt.quiz_id:
@@ -118,12 +118,11 @@ class AnalyticsService:
         if analytics.topic_performance:
             self._update_weak_strong_areas(analytics)
 
-        self.db.commit()
-        self.db.refresh(analytics)
+        await analytics.save()
 
         return analytics
     
-    def _update_learning_curve(self, analytics: Analytics, attempt: QuizAttempt):
+    def _update_learning_curve(self, analytics: AnalyticsModel, attempt: QuizAttemptModel):
         """Update learning curve with latest performance."""
         if not analytics.learning_curve:
             analytics.learning_curve = []
@@ -141,21 +140,23 @@ class AnalyticsService:
         if len(analytics.learning_curve) > 100:
             analytics.learning_curve = analytics.learning_curve[-100:]
     
-    def _update_topic_performance(self, analytics: Analytics, attempt: QuizAttempt):
+    async def _update_topic_performance(self, analytics: AnalyticsModel, attempt: QuizAttemptModel):
         """Update topic-wise performance."""
         if not analytics.topic_performance:
             analytics.topic_performance = {}
         
         # Get quiz questions with topics
-        from app.database.repository import QuizRepository
-        quiz_repo = QuizRepository(self.db)
-        quiz_questions = quiz_repo.get_quiz_questions(attempt.quiz_id)
+        from app.database.repository.quiz_repository import QuizRepository
+        quiz_repo = QuizRepository()
+        quiz_question_ids = await quiz_repo.get_quiz_questions(attempt.quiz_id)
         
         # Aggregate performance by topic
         topic_stats = {}
-        for quiz_question in quiz_questions:
-            question = quiz_question.question
-            topic = question.topic or "general"
+        for question_id in quiz_question_ids:
+            question = await self.question_repository.get_by_id(question_id)
+            if not question:
+                continue
+            topic = question.subtopic or "general"
             
             if topic not in topic_stats:
                 topic_stats[topic] = {
@@ -168,7 +169,7 @@ class AnalyticsService:
             topic_stats[topic]["attempts"] += 1
             
             # Check if user answered correctly (simplified)
-            user_answer = attempt.answers.get(str(question.id)) if attempt.answers else None
+            user_answer = attempt.answers.get(str(question_id)) if attempt.answers else None
             if user_answer and user_answer == question.correct_answer:
                 topic_stats[topic]["correct"] += 1
         
@@ -188,20 +189,22 @@ class AnalyticsService:
             correct = analytics.topic_performance[topic]["correct_answers"]
             analytics.topic_performance[topic]["accuracy"] = (correct / total * 100) if total > 0 else 0
     
-    def _update_difficulty_performance(self, analytics: Analytics, attempt: QuizAttempt):
+    async def _update_difficulty_performance(self, analytics: AnalyticsModel, attempt: QuizAttemptModel):
         """Update difficulty-wise performance."""
         if not analytics.difficulty_performance:
             analytics.difficulty_performance = {}
         
         # Get quiz questions with difficulty
-        from app.database.repository import QuizRepository
-        quiz_repo = QuizRepository(self.db)
-        quiz_questions = quiz_repo.get_quiz_questions(attempt.quiz_id)
+        from app.database.repository.quiz_repository import QuizRepository
+        quiz_repo = QuizRepository()
+        quiz_question_ids = await quiz_repo.get_quiz_questions(attempt.quiz_id)
         
         # Aggregate performance by difficulty
         difficulty_stats = {}
-        for quiz_question in quiz_questions:
-            question = quiz_question.question
+        for question_id in quiz_question_ids:
+            question = await self.question_repository.get_by_id(question_id)
+            if not question:
+                continue
             difficulty = question.difficulty.value if question.difficulty else "medium"
             
             if difficulty not in difficulty_stats:
@@ -213,7 +216,7 @@ class AnalyticsService:
             difficulty_stats[difficulty]["total"] += 1
             
             # Check if user answered correctly
-            user_answer = attempt.answers.get(str(question.id)) if attempt.answers else None
+            user_answer = attempt.answers.get(str(question_id)) if attempt.answers else None
             if user_answer and user_answer == question.correct_answer:
                 difficulty_stats[difficulty]["correct"] += 1
         
@@ -233,7 +236,7 @@ class AnalyticsService:
             correct = analytics.difficulty_performance[difficulty]["correct_answers"]
             analytics.difficulty_performance[difficulty]["accuracy"] = (correct / total * 100) if total > 0 else 0
     
-    def _update_weak_strong_areas(self, analytics: Analytics):
+    def _update_weak_strong_areas(self, analytics: AnalyticsModel):
         """Update weak and strong areas based on performance."""
         if not analytics.topic_performance:
             return
@@ -253,24 +256,24 @@ class AnalyticsService:
         analytics.weak_areas = weak_areas
         analytics.strong_areas = strong_areas
     
-    def get_dashboard_data(self, user_id: int) -> Dict[str, Any]:
+    async def get_dashboard_data(self, user_id: int) -> Dict[str, Any]:
         """Get comprehensive dashboard data."""
-        analytics = self.get_user_analytics(user_id)
+        analytics = await self.get_user_analytics(user_id)
         
         # Get recent attempts
-        recent_attempts = self.quiz_attempt_repository.get_by_user_id(user_id, 0, 10)
+        recent_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 10)
         
         # Calculate progress data
-        daily_progress = self._calculate_progress(user_id, days=7)
-        weekly_progress = self._calculate_progress(user_id, days=30)
-        monthly_progress = self._calculate_progress(user_id, days=90)
+        daily_progress = await self._calculate_progress(user_id, days=7)
+        weekly_progress = await self._calculate_progress(user_id, days=30)
+        monthly_progress = await self._calculate_progress(user_id, days=90)
         
         return {
             "overall_accuracy": analytics.overall_accuracy,
             "total_quizzes_attempted": analytics.total_quizzes_attempted,
             "total_questions_attempted": analytics.total_questions_attempted,
             "average_score": sum(a.percentage for a in recent_attempts) / len(recent_attempts) if recent_attempts else 0,
-            "completion_rate": self._calculate_completion_rate(user_id),
+            "completion_rate": await self._calculate_completion_rate(user_id),
             "daily_progress": daily_progress,
             "weekly_progress": weekly_progress,
             "monthly_progress": monthly_progress,
@@ -289,21 +292,24 @@ class AnalyticsService:
             "strong_areas": analytics.strong_areas or []
         }
     
-    def _calculate_progress(self, user_id: int, days: int) -> List[Dict[str, Any]]:
+    async def _calculate_progress(self, user_id: int, days: int) -> List[Dict[str, Any]]:
         """Calculate progress over specified days."""
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         
-        attempts = self.db.query(QuizAttempt).filter(
-            QuizAttempt.user_id == user_id,
-            QuizAttempt.status == AttemptStatus.COMPLETED,
-            QuizAttempt.completed_at >= int(start_date.timestamp()),
-            QuizAttempt.completed_at <= int(end_date.timestamp())
-        ).all()
+        attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 1000)
+        
+        # Filter by date range and status
+        filtered_attempts = [
+            a for a in attempts 
+            if a.status == AttemptStatus.COMPLETED 
+            and a.completed_at 
+            and int(start_date.timestamp()) <= a.completed_at <= int(end_date.timestamp())
+        ]
         
         # Group by date
         progress_data = {}
-        for attempt in attempts:
+        for attempt in filtered_attempts:
             date = datetime.fromtimestamp(attempt.completed_at).strftime('%Y-%m-%d')
             if date not in progress_data:
                 progress_data[date] = {
@@ -331,9 +337,9 @@ class AnalyticsService:
         
         return progress
     
-    def _calculate_completion_rate(self, user_id: int) -> float:
+    async def _calculate_completion_rate(self, user_id: int) -> float:
         """Calculate quiz completion rate."""
-        total_attempts = self.quiz_attempt_repository.get_by_user_id(user_id)
+        total_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id)
         completed_attempts = [a for a in total_attempts if a.status == AttemptStatus.COMPLETED]
         
         if not total_attempts:
@@ -341,9 +347,9 @@ class AnalyticsService:
         
         return (len(completed_attempts) / len(total_attempts)) * 100
     
-    def get_performance_analysis(self, user_id: int) -> Dict[str, Any]:
+    async def get_performance_analysis(self, user_id: int) -> Dict[str, Any]:
         """Get detailed performance analysis."""
-        analytics = self.get_user_analytics(user_id)
+        analytics = await self.get_user_analytics(user_id)
         
         # Calculate trends
         accuracy_trend = []
@@ -358,7 +364,7 @@ class AnalyticsService:
                     })
         
         # Speed analysis
-        attempts = self.quiz_attempt_repository.get_by_user_id(user_id, 0, 50)
+        attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 50)
         completed_attempts = [a for a in attempts if a.status == AttemptStatus.COMPLETED]
         
         speed_analysis = {}
@@ -377,11 +383,11 @@ class AnalyticsService:
             "difficulty_progression": analytics.difficulty_performance or {},
             "topic_mastery": analytics.topic_performance or {},
             "learning_velocity": self._calculate_learning_velocity(analytics),
-            "retention_rate": self._calculate_retention_rate(user_id),
+            "retention_rate": await self._calculate_retention_rate(user_id),
             "improvement_areas": analytics.weak_areas or []
         }
     
-    def _calculate_learning_velocity(self, analytics: Analytics) -> float:
+    def _calculate_learning_velocity(self, analytics: AnalyticsModel) -> float:
         """Calculate learning velocity (improvement rate)."""
         if not analytics.learning_curve or len(analytics.learning_curve) < 2:
             return 0.0
@@ -397,7 +403,7 @@ class AnalyticsService:
         
         return recent_avg - older_avg
     
-    def _calculate_retention_rate(self, user_id: int) -> float:
+    async def _calculate_retention_rate(self, user_id: int) -> float:
         """Calculate retention rate (simplified)."""
         # This would normally track performance on repeated topics
         # For now, return a placeholder

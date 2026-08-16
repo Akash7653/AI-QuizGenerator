@@ -1,8 +1,6 @@
 import os
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.database.connection import get_db
-from app.database.models.user import User
+from app.database.mongodb_models import UserModel
 from app.middleware.auth import get_current_user
 from pydantic import BaseModel
 from app.config.settings import settings, get_gemini_api_key
@@ -38,8 +36,7 @@ class ChatResponse(BaseModel):
 @router.post("/message")
 async def chat_message(
     request: ChatMessage,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """
     Send a message to the Gemini-powered chatbot.

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
-from app.database.models.user import UserRole
+from app.database.mongodb_models import UserRole
 
 
 class UserBase(BaseModel):

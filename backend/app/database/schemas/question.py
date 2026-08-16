@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from app.database.models.question import QuestionType, Difficulty, BloomTaxonomy
+from app.database.mongodb_models import QuestionType, Difficulty, BloomTaxonomy
 
 
 class QuestionBase(BaseModel):

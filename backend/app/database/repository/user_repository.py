@@ -1,114 +1,108 @@
 from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from app.database.models.user import User, UserRole
+from app.database.mongodb_models import UserModel, UserRole
 from app.database.repository.base import BaseRepository
 
 
-class UserRepository(BaseRepository[User]):
+class UserRepository(BaseRepository[UserModel]):
     """Repository for User model."""
     
-    def __init__(self, db: Session):
-        super().__init__(User, db)
+    def __init__(self):
+        super().__init__(UserModel)
     
-    def get_by_email(self, email: str) -> Optional[User]:
+    async def get_by_email(self, email: str) -> Optional[UserModel]:
         """Get user by email."""
-        return self.db.query(User).filter(User.email == email).first()
+        return await self.model.find_one(self.model.email == email)
     
-    def get_by_username(self, username: str) -> Optional[User]:
+    async def get_by_username(self, username: str) -> Optional[UserModel]:
         """Get user by username."""
-        return self.db.query(User).filter(User.username == username).first()
+        return await self.model.find_one(self.model.username == username)
 
-    def get_by_name(self, name: str) -> Optional[User]:
+    async def get_by_name(self, name: str) -> Optional[UserModel]:
         """Backward-compatible alias for older callers."""
-        return self.get_by_username(name)
+        return await self.get_by_username(name)
     
-    def get_active_users(self, skip: int = 0, limit: int = 100) -> List[User]:
+    async def get_active_users(self, skip: int = 0, limit: int = 100) -> List[UserModel]:
         """Get all active users."""
-        return self.db.query(User).filter(User.is_active == True).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.is_active == True).skip(skip).limit(limit).to_list()
     
-    def get_users_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> List[User]:
+    async def get_users_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> List[UserModel]:
         """Get users by role."""
-        return self.db.query(User).filter(User.role == role).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.role == role).skip(skip).limit(limit).to_list()
     
-    def get_verified_users(self, skip: int = 0, limit: int = 100) -> List[User]:
+    async def get_verified_users(self, skip: int = 0, limit: int = 100) -> List[UserModel]:
         """Get all verified users."""
-        return self.db.query(User).filter(User.is_verified == True).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.is_verified == True).skip(skip).limit(limit).to_list()
     
-    def search_users(self, query: str, skip: int = 0, limit: int = 100) -> List[User]:
+    async def search_users(self, query: str, skip: int = 0, limit: int = 100) -> List[UserModel]:
         """Search users by username or email."""
-        search_pattern = f"%{query}%"
-        return self.db.query(User).filter(
-            or_(
-                User.username.ilike(search_pattern),
-                User.email.ilike(search_pattern)
-            )
-        ).offset(skip).limit(limit).all()
+        # MongoDB case-insensitive search using regex
+        import re
+        pattern = re.compile(query, re.IGNORECASE)
+        return await self.model.find({
+            "$or": [
+                {"username": pattern},
+                {"email": pattern}
+            ]
+        }).skip(skip).limit(limit).to_list()
     
-    def activate_user(self, user_id: int) -> Optional[User]:
+    async def activate_user(self, user_id: int) -> Optional[UserModel]:
         """Activate user account."""
-        user = self.get_by_id(user_id)
+        user = await self.get_by_id(user_id)
         if user:
             user.is_active = True
-            self.db.commit()
-            self.db.refresh(user)
+            await user.save()
         return user
     
-    def deactivate_user(self, user_id: int) -> Optional[User]:
+    async def deactivate_user(self, user_id: int) -> Optional[UserModel]:
         """Deactivate user account."""
-        user = self.get_by_id(user_id)
+        user = await self.get_by_id(user_id)
         if user:
             user.is_active = False
-            self.db.commit()
-            self.db.refresh(user)
+            await user.save()
         return user
     
-    def verify_user(self, user_id: int) -> Optional[User]:
+    async def verify_user(self, user_id: int) -> Optional[UserModel]:
         """Verify user email."""
-        user = self.get_by_id(user_id)
+        user = await self.get_by_id(user_id)
         if user:
             user.is_verified = True
-            self.db.commit()
-            self.db.refresh(user)
+            await user.save()
         return user
     
-    def update_password(self, user_id: int, hashed_password: str) -> Optional[User]:
+    async def update_password(self, user_id: int, hashed_password: str) -> Optional[UserModel]:
         """Update user password."""
-        user = self.get_by_id(user_id)
+        user = await self.get_by_id(user_id)
         if user:
             user.password = hashed_password
-            self.db.commit()
-            self.db.refresh(user)
+            await user.save()
         return user
     
-    def update_profile_image(self, user_id: int, profile_image: str) -> Optional[User]:
+    async def update_profile_image(self, user_id: int, profile_image: str) -> Optional[UserModel]:
         """Update user profile image."""
-        user = self.get_by_id(user_id)
+        user = await self.get_by_id(user_id)
         if user:
             user.profile_image = profile_image
-            self.db.commit()
-            self.db.refresh(user)
+            await user.save()
         return user
 
-    def update_email(self, user_id: int, new_email: str) -> Optional[User]:
+    async def update_email(self, user_id: int, new_email: str) -> Optional[UserModel]:
         """Update a user's email address."""
-        user = self.get_by_id(user_id)
+        user = await self.get_by_id(user_id)
         if user:
             user.email = new_email
             user.is_verified = False
-            self.db.commit()
-            self.db.refresh(user)
+            await user.save()
         return user
     
-    def get_user_stats(self) -> Dict[str, Any]:
+    async def get_user_stats(self) -> Dict[str, Any]:
         """Get user statistics."""
-        total_users = self.db.query(User).count()
-        active_users = self.db.query(User).filter(User.is_active == True).count()
-        verified_users = self.db.query(User).filter(User.is_verified == True).count()
+        total_users = await self.model.count()
+        active_users = await self.model.find(self.model.is_active == True).count()
+        verified_users = await self.model.find(self.model.is_verified == True).count()
         
         role_stats = {}
         for role in UserRole:
-            role_stats[role.value] = self.db.query(User).filter(User.role == role).count()
+            role_stats[role.value] = await self.model.find(self.model.role == role).count()
         
         return {
             "total_users": total_users,

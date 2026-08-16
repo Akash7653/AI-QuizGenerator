@@ -1,31 +1,30 @@
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from loguru import logger
-from app.database.models.recommendation import Recommendation
-from app.database.models.analytics import Analytics
-from app.database.models.quiz import Quiz
-from app.database.repository import RecommendationRepository, AnalyticsRepository, QuizRepository, QuestionRepository
+from app.database.mongodb_models import RecommendationModel, AnalyticsModel, QuizModel
+from app.database.repository.recommendation_repository import RecommendationRepository
+from app.database.repository.analytics_repository import AnalyticsRepository
+from app.database.repository.quiz_repository import QuizRepository
+from app.database.repository.question_repository import QuestionRepository
 from app.database.schemas.recommendation import RecommendationCreate
 
 
 class RecommendationService:
     """Service for personalized learning recommendations."""
     
-    def __init__(self, db: Session):
+    def __init__(self):
         """Initialize recommendation service."""
-        self.db = db
-        self.recommendation_repository = RecommendationRepository(db)
-        self.analytics_repository = AnalyticsRepository(db)
-        self.quiz_repository = QuizRepository(db)
-        self.question_repository = QuestionRepository(db)
+        self.recommendation_repository = RecommendationRepository()
+        self.analytics_repository = AnalyticsRepository()
+        self.quiz_repository = QuizRepository()
+        self.question_repository = QuestionRepository()
     
-    def generate_recommendations(self, user_id: int) -> List[Recommendation]:
+    async def generate_recommendations(self, user_id: int) -> List[RecommendationModel]:
         """Generate personalized recommendations for user."""
         logger.info(f"Generating recommendations for user {user_id}")
         
         # Get user analytics
-        analytics = self.analytics_repository.get_by_user_id(user_id)
+        analytics = await self.analytics_repository.get_by_user_id(user_id)
         if not analytics:
             logger.warning(f"No analytics found for user {user_id}")
             return []
@@ -37,7 +36,7 @@ class RecommendationService:
         recommendations.extend(weak_topic_recs)
         
         # Generate next quiz recommendations
-        next_quiz_recs = self._generate_next_quiz_recommendations(user_id, analytics)
+        next_quiz_recs = await self._generate_next_quiz_recommendations(user_id, analytics)
         recommendations.extend(next_quiz_recs)
         
         # Generate revision recommendations
@@ -49,12 +48,12 @@ class RecommendationService:
         recommendations.extend(next_topic_recs)
         
         # Clear old recommendations and save new ones
-        self.recommendation_repository.clear_user_recommendations(user_id)
+        await self.recommendation_repository.clear_user_recommendations(user_id)
         
         saved_recommendations = []
         for rec_data in recommendations:
             rec_data['user_id'] = user_id
-            recommendation = self.recommendation_repository.create(rec_data)
+            recommendation = await self.recommendation_repository.create(rec_data)
             saved_recommendations.append(recommendation)
         
         logger.info(f"Generated {len(saved_recommendations)} recommendations for user {user_id}")
@@ -86,16 +85,16 @@ class RecommendationService:
         
         return recommendations
     
-    def _generate_next_quiz_recommendations(
+    async def _generate_next_quiz_recommendations(
         self,
         user_id: int,
-        analytics: Analytics
+        analytics: AnalyticsModel
     ) -> List[Dict[str, Any]]:
         """Generate recommendations for next quiz to take."""
         recommendations = []
         
         # Get user's recent quizzes
-        recent_quizzes = self.quiz_repository.get_by_user_id(user_id, 0, 5)
+        recent_quizzes = await self.quiz_repository.get_by_user_id(user_id, 0, 5)
         
         if not recent_quizzes:
             # Recommend starting with easy quizzes
@@ -213,21 +212,21 @@ class RecommendationService:
         else:
             return "hard"
     
-    def get_user_recommendations(
+    async def get_user_recommendations(
         self,
         user_id: int,
         recommendation_type: Optional[str] = None
-    ) -> List[Recommendation]:
+    ) -> List[RecommendationModel]:
         """Get recommendations for user."""
         if recommendation_type:
-            return self.recommendation_repository.get_by_type(user_id, recommendation_type)
+            return await self.recommendation_repository.get_by_type(user_id, recommendation_type)
         else:
-            return self.recommendation_repository.get_active_recommendations(user_id)
+            return await self.recommendation_repository.get_active_recommendations(user_id)
     
-    def get_personalized_learning_path(self, user_id: int) -> Dict[str, Any]:
+    async def get_personalized_learning_path(self, user_id: int) -> Dict[str, Any]:
         """Get personalized learning path for user."""
-        analytics = self.analytics_repository.get_by_user_id(user_id)
-        recommendations = self.get_user_recommendations(user_id)
+        analytics = await self.analytics_repository.get_by_user_id(user_id)
+        recommendations = await self.get_user_recommendations(user_id)
         
         if not analytics:
             return {
@@ -314,29 +313,29 @@ class RecommendationService:
             "learning_objectives": learning_objectives
         }
     
-    def mark_recommendation_completed(self, recommendation_id: int, user_id: int) -> Optional[Recommendation]:
+    async def mark_recommendation_completed(self, recommendation_id: int, user_id: int) -> Optional[RecommendationModel]:
         """Mark recommendation as completed."""
-        recommendation = self.recommendation_repository.get_by_id(recommendation_id)
+        recommendation = await self.recommendation_repository.get_by_id(recommendation_id)
         
         if not recommendation or recommendation.user_id != user_id:
             return None
         
-        return self.recommendation_repository.mark_as_completed(recommendation_id)
+        return await self.recommendation_repository.mark_as_completed(recommendation_id)
     
-    def dismiss_recommendation(self, recommendation_id: int, user_id: int) -> Optional[Recommendation]:
+    async def dismiss_recommendation(self, recommendation_id: int, user_id: int) -> Optional[RecommendationModel]:
         """Dismiss recommendation."""
-        recommendation = self.recommendation_repository.get_by_id(recommendation_id)
+        recommendation = await self.recommendation_repository.get_by_id(recommendation_id)
         
         if not recommendation or recommendation.user_id != user_id:
             return None
         
-        return self.recommendation_repository.mark_as_dismissed(recommendation_id)
+        return await self.recommendation_repository.mark_as_dismissed(recommendation_id)
     
-    def update_recommendation_priority(self, recommendation_id: int, priority: int, user_id: int) -> Optional[Recommendation]:
+    async def update_recommendation_priority(self, recommendation_id: int, priority: int, user_id: int) -> Optional[RecommendationModel]:
         """Update recommendation priority."""
-        recommendation = self.recommendation_repository.get_by_id(recommendation_id)
+        recommendation = await self.recommendation_repository.get_by_id(recommendation_id)
         
         if not recommendation or recommendation.user_id != user_id:
             return None
         
-        return self.recommendation_repository.update_priority(recommendation_id, priority)
+        return await self.recommendation_repository.update_priority(recommendation_id, priority)

@@ -1,15 +1,12 @@
 from fastapi import Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
 from typing import Optional
-from app.database.connection import get_db
-from app.database.models.user import User
-from app.database.repository import UserRepository
+from app.database.mongodb_models import UserModel
+from app.database.repository.user_repository import UserRepository
 
 
 async def get_current_user(
-    request: Request,
-    db: Session = Depends(get_db)
-) -> User:
+    request: Request
+) -> UserModel:
     """Dependency to get current authenticated user from session."""
     print(f"[Auth Middleware] get_current_user called")
     
@@ -25,8 +22,8 @@ async def get_current_user(
         )
     
     # Get user from database
-    user_repo = UserRepository(db)
-    user = user_repo.get_by_id(user_id)
+    user_repo = UserRepository()
+    user = await user_repo.get_by_id(user_id)
     print(f"[Auth Middleware] User from DB: {user}")
     
     if user is None:

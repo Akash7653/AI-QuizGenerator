@@ -15,18 +15,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(..., description="Secret key for application")
     API_V1_PREFIX: str = "/api/v1"
     
-    # Database
-    DATABASE_URL: str = Field(..., description="PostgreSQL database URL")
-    DATABASE_POOL_SIZE: int = 20
-    DATABASE_MAX_OVERFLOW: int = 10
-    
-    # MongoDB
-    MONGODB_URL: str = Field(default="mongodb://localhost:27017/quiz_generator", description="MongoDB connection URL")
+    # MongoDB (Primary Database)
+    MONGODB_URL: str = Field(default="mongodb+srv://vaishnavimoreddy73_db_user:dM3udT7r5Gtfb4uV@primarycluster.gumoqac.mongodb.net", description="MongoDB connection URL")
     MONGODB_DATABASE: str = "quiz_generator"
-    
-    # Cache
-    REDIS_URL: str = ""
-    REDIS_CACHE_TTL: int = 0
     
     # JWT
     JWT_SECRET_KEY: str = Field(..., description="JWT secret key")
@@ -92,7 +83,6 @@ class Settings(BaseSettings):
     # Features
     ENABLE_EMAIL_VERIFICATION: bool = True
     ENABLE_OCR: bool = True
-    ENABLE_VECTOR_SEARCH: bool = True
     
     class Config:
         env_file = ".env"

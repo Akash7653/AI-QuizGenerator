@@ -29,7 +29,10 @@ async def init_mongodb():
         
         # Initialize Beanie
         from app.database.mongodb_models import (
-            DocumentModel, DocumentChunkModel, EmbeddingModel
+            DocumentModel, DocumentChunkModel, EmbeddingModel,
+            UserModel, TopicModel, QuestionModel, QuizModel,
+            QuizAttemptModel, AttemptAnswerModel, AnalyticsModel,
+            RecommendationModel, NotificationModel, UserActivityModel
         )
         
         # Parse database name from URL or use default
@@ -43,7 +46,17 @@ async def init_mongodb():
             document_models=[
                 DocumentModel,
                 DocumentChunkModel,
-                EmbeddingModel
+                EmbeddingModel,
+                UserModel,
+                TopicModel,
+                QuestionModel,
+                QuizModel,
+                QuizAttemptModel,
+                AttemptAnswerModel,
+                AnalyticsModel,
+                RecommendationModel,
+                NotificationModel,
+                UserActivityModel
             ]
         )
         

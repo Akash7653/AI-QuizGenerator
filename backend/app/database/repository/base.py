@@ -1,23 +1,21 @@
 from typing import Generic, TypeVar, Type, List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from app.database.models.base import BaseModel
+from beanie import Document
+from beanie.operators import In
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar('T', bound=Document)
 
 
 class BaseRepository(Generic[T]):
-    """Base repository with common CRUD operations."""
+    """Base repository with common CRUD operations for MongoDB."""
     
-    def __init__(self, model: Type[T], db: Session):
+    def __init__(self, model: Type[T]):
         self.model = model
-        self.db = db
     
-    def get_by_id(self, id: int) -> Optional[T]:
+    async def get_by_id(self, id: int) -> Optional[T]:
         """Get entity by ID."""
-        return self.db.query(self.model).filter(self.model.id == id).first()
+        return await self.model.find_one(self.model.id == id)
     
-    def get_all(
+    async def get_all(
         self,
         skip: int = 0,
         limit: int = 100,
@@ -26,78 +24,62 @@ class BaseRepository(Generic[T]):
         order_desc: bool = False
     ) -> List[T]:
         """Get all entities with optional filtering and pagination."""
-        query = self.db.query(self.model)
+        query = self.model.find()
         
         if filters:
-            for key, value in filters.items():
-                if hasattr(self.model, key):
-                    query = query.filter(getattr(self.model, key) == value)
+            query = query.find(filters)
         
-        if order_by and hasattr(self.model, order_by):
-            column = getattr(self.model, order_by)
-            query = query.order_by(column.desc() if order_desc else column.asc())
+        if order_by:
+            sort_field = getattr(self.model, order_by)
+            query = query.sort((sort_field, -1 if order_desc else 1))
         
-        return query.offset(skip).limit(limit).all()
+        return await query.skip(skip).limit(limit).to_list()
     
-    def create(self, obj_in: Dict[str, Any]) -> T:
+    async def create(self, obj_in: Dict[str, Any]) -> T:
         """Create new entity."""
         db_obj = self.model(**obj_in)
-        self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await db_obj.insert()
         return db_obj
     
-    def update(self, db_obj: T, obj_in: Dict[str, Any]) -> T:
+    async def update(self, db_obj: T, obj_in: Dict[str, Any]) -> T:
         """Update existing entity."""
         for field, value in obj_in.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
         
-        self.db.commit()
-        self.db.refresh(db_obj)
+        await db_obj.save()
         return db_obj
     
-    def delete(self, id: int) -> bool:
+    async def delete(self, id: int) -> bool:
         """Delete entity by ID."""
-        obj = self.get_by_id(id)
+        obj = await self.get_by_id(id)
         if obj:
-            self.db.delete(obj)
-            self.db.commit()
+            await obj.delete()
             return True
         return False
     
-    def count(self, filters: Optional[Dict[str, Any]] = None) -> int:
+    async def count(self, filters: Optional[Dict[str, Any]] = None) -> int:
         """Count entities with optional filters."""
-        query = self.db.query(self.model)
-        
         if filters:
-            for key, value in filters.items():
-                if hasattr(self.model, key):
-                    query = query.filter(getattr(self.model, key) == value)
-        
-        return query.count()
+            return await self.model.find(filters).count()
+        return await self.model.count()
     
-    def exists(self, id: int) -> bool:
+    async def exists(self, id: int) -> bool:
         """Check if entity exists."""
-        return self.db.query(self.model).filter(self.model.id == id).first() is not None
+        return await self.get_by_id(id) is not None
     
-    def bulk_create(self, objects: List[Dict[str, Any]]) -> List[T]:
+    async def bulk_create(self, objects: List[Dict[str, Any]]) -> List[T]:
         """Bulk create entities."""
         db_objects = [self.model(**obj) for obj in objects]
-        self.db.add_all(db_objects)
-        self.db.commit()
-        for obj in db_objects:
-            self.db.refresh(obj)
+        await self.model.insert_many(db_objects)
         return db_objects
     
-    def bulk_update(self, ids: List[int], obj_in: Dict[str, Any]) -> int:
+    async def bulk_update(self, ids: List[int], obj_in: Dict[str, Any]) -> int:
         """Bulk update entities."""
-        updated = self.db.query(self.model).filter(self.model.id.in_(ids)).update(obj_in)
-        self.db.commit()
-        return updated
+        result = await self.model.find(In(self.model.id, ids)).update({"$set": obj_in})
+        return result.modified_count
     
-    def bulk_delete(self, ids: List[int]) -> int:
+    async def bulk_delete(self, ids: List[int]) -> int:
         """Bulk delete entities."""
-        deleted = self.db.query(self.model).filter(self.model.id.in_(ids)).delete()
-        self.db.commit()
-        return deleted
+        result = await self.model.find(In(self.model.id, ids)).delete()
+        return result.deleted_count

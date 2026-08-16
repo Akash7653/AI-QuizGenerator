@@ -1,8 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
-from app.database.models.quiz import QuizMode
-from app.database.models.quiz_attempt import AttemptStatus
+from app.database.mongodb_models import QuizMode, AttemptStatus
 
 
 class QuizBase(BaseModel):

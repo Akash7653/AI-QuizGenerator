@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
-from app.database.models.document import DocumentType, DocumentStatus
+from app.database.mongodb_models import DocumentType, DocumentStatus
 
 
 class DocumentBase(BaseModel):

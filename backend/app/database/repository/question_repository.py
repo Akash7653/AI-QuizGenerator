@@ -1,63 +1,50 @@
 from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func
-from app.database.models.question import Question, QuestionType, Difficulty, BloomTaxonomy
+from app.database.mongodb_models import QuestionModel, QuestionType, Difficulty, BloomTaxonomy
 from app.database.repository.base import BaseRepository
 
 
-class QuestionRepository(BaseRepository[Question]):
+class QuestionRepository(BaseRepository[QuestionModel]):
     """Repository for Question model."""
     
-    def __init__(self, db: Session):
-        super().__init__(Question, db)
+    def __init__(self):
+        super().__init__(QuestionModel)
     
-    def get_by_document_id(self, document_id: int, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def get_by_document_id(self, document_id: int, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Get questions by document ID."""
-        return self.db.query(Question).filter(
-            Question.document_id == document_id
-        ).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.document_id == document_id).skip(skip).limit(limit).to_list()
     
-    def get_by_topic_id(self, topic_id: int, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def get_by_topic_id(self, topic_id: int, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Get questions by topic ID."""
-        return self.db.query(Question).filter(
-            Question.topic_id == topic_id
-        ).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.topic_id == topic_id).skip(skip).limit(limit).to_list()
     
-    def get_by_type(self, question_type: QuestionType, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def get_by_type(self, question_type: QuestionType, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Get questions by type."""
-        return self.db.query(Question).filter(
-            Question.question_type == question_type
-        ).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.question_type == question_type).skip(skip).limit(limit).to_list()
     
-    def get_by_difficulty(self, difficulty: Difficulty, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def get_by_difficulty(self, difficulty: Difficulty, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Get questions by difficulty."""
-        return self.db.query(Question).filter(
-            Question.difficulty == difficulty
-        ).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.difficulty == difficulty).skip(skip).limit(limit).to_list()
     
-    def get_validated_questions(self, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def get_validated_questions(self, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Get all validated questions."""
-        return self.db.query(Question).filter(
-            Question.is_validated == True
-        ).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.is_validated == True).skip(skip).limit(limit).to_list()
     
-    def get_unvalidated_questions(self, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def get_unvalidated_questions(self, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Get all unvalidated questions."""
-        return self.db.query(Question).filter(
-            Question.is_validated == False
-        ).offset(skip).limit(limit).all()
+        return await self.model.find(self.model.is_validated == False).skip(skip).limit(limit).to_list()
     
-    def search_questions(self, query: str, skip: int = 0, limit: int = 100) -> List[Question]:
+    async def search_questions(self, query: str, skip: int = 0, limit: int = 100) -> List[QuestionModel]:
         """Search questions by text."""
-        search_pattern = f"%{query}%"
-        return self.db.query(Question).filter(
-            or_(
-                Question.question_text.ilike(search_pattern),
-                Question.subtopic.ilike(search_pattern)
-            )
-        ).offset(skip).limit(limit).all()
+        import re
+        pattern = re.compile(query, re.IGNORECASE)
+        return await self.model.find({
+            "$or": [
+                {"question_text": pattern},
+                {"subtopic": pattern}
+            ]
+        }).skip(skip).limit(limit).to_list()
     
-    def get_by_filters(
+    async def get_by_filters(
         self,
         question_type: Optional[QuestionType] = None,
         difficulty: Optional[Difficulty] = None,
@@ -67,83 +54,81 @@ class QuestionRepository(BaseRepository[Question]):
         is_validated: Optional[bool] = None,
         skip: int = 0,
         limit: int = 100
-    ) -> List[Question]:
+    ) -> List[QuestionModel]:
         """Get questions by multiple filters."""
-        query = self.db.query(Question)
+        filters = {}
         
         if question_type:
-            query = query.filter(Question.question_type == question_type)
+            filters["question_type"] = question_type
         if difficulty:
-            query = query.filter(Question.difficulty == difficulty)
+            filters["difficulty"] = difficulty
         if topic_id:
-            query = query.filter(Question.topic_id == topic_id)
+            filters["topic_id"] = topic_id
         if document_id:
-            query = query.filter(Question.document_id == document_id)
+            filters["document_id"] = document_id
         if bloom_taxonomy:
-            query = query.filter(Question.bloom_taxonomy_level == bloom_taxonomy)
+            filters["bloom_taxonomy_level"] = bloom_taxonomy
         if is_validated is not None:
-            query = query.filter(Question.is_validated == is_validated)
+            filters["is_validated"] = is_validated
         
-        return query.offset(skip).limit(limit).all()
+        return await self.model.find(filters).skip(skip).limit(limit).to_list()
     
-    def get_random_questions(self, count: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Question]:
+    async def get_random_questions(self, count: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[QuestionModel]:
         """Get random questions."""
-        query = self.db.query(Question)
+        query_filters = {}
         
         if filters:
             if 'question_type' in filters:
-                query = query.filter(Question.question_type == filters['question_type'])
+                query_filters["question_type"] = filters['question_type']
             if 'difficulty' in filters:
-                query = query.filter(Question.difficulty == filters['difficulty'])
+                query_filters["difficulty"] = filters['difficulty']
             if 'topic_id' in filters:
-                query = query.filter(Question.topic_id == filters['topic_id'])
+                query_filters["topic_id"] = filters['topic_id']
             if 'is_validated' in filters:
-                query = query.filter(Question.is_validated == filters['is_validated'])
+                query_filters["is_validated"] = filters['is_validated']
         
-        return query.order_by(func.random()).limit(count).all()
+        # MongoDB random sampling using $sample
+        pipeline = [{"$match": query_filters}, {"$sample": {"size": count}}]
+        return await self.model.aggregate(pipeline).to_list()
     
-    def update_validation_status(
+    async def update_validation_status(
         self, 
         question_id: int, 
         is_validated: bool, 
         validation_errors: Optional[List[str]] = None
-    ) -> Optional[Question]:
+    ) -> Optional[QuestionModel]:
         """Update question validation status."""
-        question = self.get_by_id(question_id)
+        question = await self.get_by_id(question_id)
         if question:
             question.is_validated = is_validated
             question.validation_errors = validation_errors
-            self.db.commit()
-            self.db.refresh(question)
+            await question.save()
         return question
     
-    def update_confidence_score(self, question_id: int, confidence_score: float) -> Optional[Question]:
+    async def update_confidence_score(self, question_id: int, confidence_score: float) -> Optional[QuestionModel]:
         """Update question confidence score."""
-        question = self.get_by_id(question_id)
+        question = await self.get_by_id(question_id)
         if question:
             question.confidence_score = confidence_score
-            self.db.commit()
-            self.db.refresh(question)
+            await question.save()
         return question
     
-    def get_question_stats(self) -> Dict[str, Any]:
+    async def get_question_stats(self) -> Dict[str, Any]:
         """Get question statistics."""
-        total_questions = self.db.query(Question).count()
-        validated_questions = self.db.query(Question).filter(Question.is_validated == True).count()
+        total_questions = await self.model.count()
+        validated_questions = await self.model.find(self.model.is_validated == True).count()
         
         type_stats = {}
         for q_type in QuestionType:
-            type_stats[q_type.value] = self.db.query(Question).filter(
-                Question.question_type == q_type
-            ).count()
+            type_stats[q_type.value] = await self.model.find(self.model.question_type == q_type).count()
         
         difficulty_stats = {}
         for diff in Difficulty:
-            difficulty_stats[diff.value] = self.db.query(Question).filter(
-                Question.difficulty == diff
-            ).count()
+            difficulty_stats[diff.value] = await self.model.find(self.model.difficulty == diff).count()
         
-        avg_confidence = self.db.query(func.avg(Question.confidence_score)).scalar() or 0.0
+        # Calculate average confidence score
+        all_questions = await self.model.find_all().to_list()
+        avg_confidence = sum(q.confidence_score for q in all_questions) / len(all_questions) if all_questions else 0.0
         
         return {
             "total_questions": total_questions,

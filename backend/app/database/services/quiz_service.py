@@ -1,12 +1,10 @@
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
 from datetime import datetime
 import random
 from loguru import logger
-from app.database.models.quiz import Quiz, QuizMode, QuizQuestion
-from app.database.models.question import Question, Difficulty
-from app.database.models.quiz_attempt import QuizAttempt, AttemptStatus, AttemptAnswer
-from app.database.repository import QuizRepository, QuizAttemptRepository, QuestionRepository
+from app.database.mongodb_models import QuizModel, QuizMode, QuestionModel, Difficulty, QuizAttemptModel, AttemptStatus
+from app.database.repository.quiz_repository import QuizRepository, QuizAttemptRepository
+from app.database.repository.question_repository import QuestionRepository
 from app.database.schemas.quiz import QuizCreate, QuizAttemptCreate
 from app.ai.question_generator import QuestionGenerator
 from app.ai.validator import QuestionValidator
@@ -15,16 +13,15 @@ from app.ai.validator import QuestionValidator
 class QuizService:
     """Service for quiz management and operations."""
     
-    def __init__(self, db: Session):
+    def __init__(self):
         """Initialize quiz service."""
-        self.db = db
-        self.quiz_repository = QuizRepository(db)
-        self.quiz_attempt_repository = QuizAttemptRepository(db)
-        self.question_repository = QuestionRepository(db)
+        self.quiz_repository = QuizRepository()
+        self.quiz_attempt_repository = QuizAttemptRepository()
+        self.question_repository = QuestionRepository()
         self.question_generator = QuestionGenerator()
         self.question_validator = QuestionValidator()
     
-    def create_quiz(self, quiz_data: QuizCreate, user_id: int) -> Quiz:
+    async def create_quiz(self, quiz_data: QuizCreate, user_id: int) -> QuizModel:
         """Create a new quiz."""
         logger.info(f"Creating quiz for user {user_id}")
 
@@ -32,15 +29,15 @@ class QuizService:
         quiz_dict['user_id'] = user_id
         quiz_dict.pop('question_ids', None)
 
-        quiz = self.quiz_repository.create(quiz_dict)
+        quiz = await self.quiz_repository.create(quiz_dict)
 
         if quiz_data.question_ids:
-            self.quiz_repository.add_questions_to_quiz(quiz.id, quiz_data.question_ids)
+            await self.quiz_repository.add_questions_to_quiz(quiz.id, quiz_data.question_ids)
 
         logger.info(f"Quiz created with ID {quiz.id}")
         return quiz
     
-    def generate_ai_quiz(
+    async def generate_ai_quiz(
         self,
         document_id: int,
         user_id: int,
@@ -48,7 +45,7 @@ class QuizService:
         total_questions: int = 10,
         difficulty: str = "medium",
         question_types: Optional[List[str]] = None
-    ) -> Quiz:
+    ) -> QuizModel:
         """Generate quiz using AI from document."""
         logger.info(f"Generating AI quiz for document {document_id}")
         
@@ -86,7 +83,7 @@ class QuizService:
         # Save questions to database (simplified)
         saved_question_ids = []
         for question_data in valid_questions:
-            question = self.question_repository.create(question_data)
+            question = await self.question_repository.create(question_data)
             saved_question_ids.append(question.id)
         
         # Create quiz
@@ -100,18 +97,18 @@ class QuizService:
             "total_marks": sum(q.get('marks', 1.0) for q in valid_questions)
         }
         
-        quiz = self.quiz_repository.create(quiz_data)
-        self.quiz_repository.add_questions_to_quiz(quiz.id, saved_question_ids)
+        quiz = await self.quiz_repository.create(quiz_data)
+        await self.quiz_repository.add_questions_to_quiz(quiz.id, saved_question_ids)
         
         logger.info(f"AI quiz generated with ID {quiz.id}")
         return quiz
     
-    def start_quiz(self, quiz_id: int, user_id: int) -> QuizAttempt:
+    async def start_quiz(self, quiz_id: int, user_id: int) -> QuizAttemptModel:
         """Start a quiz attempt."""
         logger.info(f"User {user_id} starting quiz {quiz_id}")
         
         # Check if quiz exists
-        quiz = self.quiz_repository.get_by_id(quiz_id)
+        quiz = await self.quiz_repository.get_by_id(quiz_id)
         if not quiz:
             raise ValueError("Quiz not found")
         
@@ -120,7 +117,7 @@ class QuizService:
             raise ValueError("User does not have permission to access this quiz")
         
         # Check for existing in-progress attempts
-        existing_attempts = self.quiz_attempt_repository.get_in_progress_attempts(user_id)
+        existing_attempts = await self.quiz_attempt_repository.get_in_progress_attempts(user_id)
         quiz_attempts = [a for a in existing_attempts if a.quiz_id == quiz_id]
         
         if quiz_attempts:
@@ -136,16 +133,16 @@ class QuizService:
             "max_score": quiz.total_marks
         }
         
-        attempt = self.quiz_attempt_repository.create(attempt_data)
+        attempt = await self.quiz_attempt_repository.create(attempt_data)
         
         logger.info(f"Quiz attempt created with ID {attempt.id}")
         return attempt
     
-    def pause_quiz(self, attempt_id: int, user_id: int) -> QuizAttempt:
+    async def pause_quiz(self, attempt_id: int, user_id: int) -> QuizAttemptModel:
         """Pause a quiz attempt."""
         logger.info(f"Pausing attempt {attempt_id}")
         
-        attempt = self.quiz_attempt_repository.get_by_id(attempt_id)
+        attempt = await self.quiz_attempt_repository.get_by_id(attempt_id)
         if not attempt:
             raise ValueError("Attempt not found")
         
@@ -153,16 +150,15 @@ class QuizService:
             raise ValueError("User does not have permission to pause this attempt")
         
         attempt.status = AttemptStatus.PAUSED
-        self.db.commit()
-        self.db.refresh(attempt)
+        await attempt.save()
         
         return attempt
     
-    def resume_quiz(self, attempt_id: int, user_id: int) -> QuizAttempt:
+    async def resume_quiz(self, attempt_id: int, user_id: int) -> QuizAttemptModel:
         """Resume a paused quiz attempt."""
         logger.info(f"Resuming attempt {attempt_id}")
         
-        attempt = self.quiz_attempt_repository.get_by_id(attempt_id)
+        attempt = await self.quiz_attempt_repository.get_by_id(attempt_id)
         if not attempt:
             raise ValueError("Attempt not found")
         
@@ -170,21 +166,20 @@ class QuizService:
             raise ValueError("User does not have permission to resume this attempt")
         
         attempt.status = AttemptStatus.IN_PROGRESS
-        self.db.commit()
-        self.db.refresh(attempt)
+        await attempt.save()
         
         return attempt
     
-    def submit_quiz(
+    async def submit_quiz(
         self,
         attempt_id: int,
         answers: Dict[str, Any],
         user_id: int
-    ) -> QuizAttempt:
+    ) -> QuizAttemptModel:
         """Submit a quiz attempt for evaluation."""
         logger.info(f"Submitting attempt {attempt_id}")
         
-        attempt = self.quiz_attempt_repository.get_by_id(attempt_id)
+        attempt = await self.quiz_attempt_repository.get_by_id(attempt_id)
         if not attempt:
             raise ValueError("Attempt not found")
         
@@ -197,7 +192,7 @@ class QuizService:
         attempt.time_taken = attempt.completed_at - attempt.started_at
         
         # Evaluate answers
-        evaluation = self._evaluate_attempt(attempt)
+        evaluation = await self._evaluate_attempt(attempt)
         
         # Update attempt with results
         attempt.total_score = evaluation['total_score']
@@ -207,16 +202,15 @@ class QuizService:
         attempt.percentage = evaluation['percentage']
         attempt.status = AttemptStatus.COMPLETED
         
-        self.db.commit()
-        self.db.refresh(attempt)
+        await attempt.save()
         
         logger.info(f"Attempt {attempt_id} submitted with score {attempt.percentage}%")
         return attempt
     
-    def _evaluate_attempt(self, attempt: QuizAttempt) -> Dict[str, Any]:
+    async def _evaluate_attempt(self, attempt: QuizAttemptModel) -> Dict[str, Any]:
         """Evaluate quiz attempt and calculate score."""
-        quiz = self.quiz_repository.get_by_id(attempt.quiz_id)
-        quiz_questions = self.quiz_repository.get_quiz_questions(attempt.quiz_id)
+        quiz = await self.quiz_repository.get_by_id(attempt.quiz_id)
+        quiz_question_ids = await self.quiz_repository.get_quiz_questions(attempt.quiz_id)
         
         total_score = 0.0
         correct_count = 0
@@ -225,9 +219,12 @@ class QuizService:
         
         user_answers = attempt.answers or {}
         
-        for quiz_question in quiz_questions:
-            question = quiz_question.question
-            user_answer = user_answers.get(str(quiz_question.question_id))
+        for question_id in quiz_question_ids:
+            question = await self.question_repository.get_by_id(question_id)
+            if not question:
+                continue
+                
+            user_answer = user_answers.get(str(question_id))
             
             if user_answer is None or user_answer == "":
                 skipped_count += 1
@@ -241,12 +238,12 @@ class QuizService:
             
             if is_correct:
                 correct_count += 1
-                total_score += quiz_question.marks
+                total_score += question.marks
             else:
                 wrong_count += 1
                 # Apply negative marking if configured
                 if quiz.negative_marking > 0:
-                    total_score -= quiz_question.marks * quiz.negative_marking
+                    total_score -= question.marks * quiz.negative_marking
         
         percentage = (total_score / quiz.total_marks * 100) if quiz.total_marks > 0 else 0
         
@@ -274,25 +271,28 @@ class QuizService:
         
         return False
     
-    def get_quiz_result(self, attempt_id: int, user_id: int) -> Dict[str, Any]:
+    async def get_quiz_result(self, attempt_id: int, user_id: int) -> Dict[str, Any]:
         """Get detailed quiz result."""
         logger.info(f"Getting result for attempt {attempt_id}")
         
-        attempt = self.quiz_attempt_repository.get_by_id(attempt_id)
+        attempt = await self.quiz_attempt_repository.get_by_id(attempt_id)
         if not attempt:
             raise ValueError("Attempt not found")
         
         if attempt.user_id != user_id:
             raise ValueError("User does not have permission to view this result")
         
-        quiz = self.quiz_repository.get_by_id(attempt.quiz_id)
-        quiz_questions = self.quiz_repository.get_quiz_questions(attempt.quiz_id)
+        quiz = await self.quiz_repository.get_by_id(attempt.quiz_id)
+        quiz_question_ids = await self.quiz_repository.get_quiz_questions(attempt.quiz_id)
         
         # Get detailed question results
         question_results = []
-        for quiz_question in quiz_questions:
-            question = quiz_question.question
-            user_answer = attempt.answers.get(str(quiz_question.question_id)) if attempt.answers else None
+        for question_id in quiz_question_ids:
+            question = await self.question_repository.get_by_id(question_id)
+            if not question:
+                continue
+                
+            user_answer = attempt.answers.get(str(question_id)) if attempt.answers else None
             
             is_correct = self._compare_answers(
                 user_answer or "",
@@ -305,7 +305,7 @@ class QuizService:
                 "user_answer": user_answer,
                 "correct_answer": question.correct_answer,
                 "is_correct": is_correct,
-                "marks": quiz_question.marks,
+                "marks": question.marks,
                 "explanation": question.explanation
             })
         
@@ -328,22 +328,22 @@ class QuizService:
             "question_results": question_results
         }
     
-    def get_user_quizzes(self, user_id: int, skip: int = 0, limit: int = 100) -> List[Quiz]:
+    async def get_user_quizzes(self, user_id: int, skip: int = 0, limit: int = 100) -> List[QuizModel]:
         """Get all quizzes for a user."""
-        return self.quiz_repository.get_by_user_id(user_id, skip, limit)
+        return await self.quiz_repository.get_by_user_id(user_id, skip, limit)
     
-    def get_user_attempts(self, user_id: int, skip: int = 0, limit: int = 100) -> List[QuizAttempt]:
+    async def get_user_attempts(self, user_id: int, skip: int = 0, limit: int = 100) -> List[QuizAttemptModel]:
         """Get all quiz attempts for a user."""
-        return self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
+        return await self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
     
-    def get_user_attempts_with_quiz_details(self, user_id: int, skip: int = 0, limit: int = 100) -> list:
+    async def get_user_attempts_with_quiz_details(self, user_id: int, skip: int = 0, limit: int = 100) -> list:
         """Get quiz history for the current user, including quizzes without saved attempts."""
-        attempts = self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
+        attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, skip, limit)
         history = []
         seen_quiz_ids = set()
 
         for attempt in attempts:
-            quiz = self.quiz_repository.get_by_id(attempt.quiz_id)
+            quiz = await self.quiz_repository.get_by_id(attempt.quiz_id)
             if not quiz:
                 continue
             seen_quiz_ids.add(attempt.quiz_id)
@@ -361,7 +361,7 @@ class QuizService:
                 'source_type': 'topic',
             })
 
-        user_quizzes = self.quiz_repository.get_by_user_id(user_id, skip, limit)
+        user_quizzes = await self.quiz_repository.get_by_user_id(user_id, skip, limit)
         for quiz in user_quizzes:
             if quiz.id in seen_quiz_ids:
                 continue
@@ -382,13 +382,13 @@ class QuizService:
         history.sort(key=lambda item: (item.get('completed_at') or 0, item.get('id', 0)), reverse=True)
         return history
     
-    def delete_quiz(self, quiz_id: int, user_id: int) -> bool:
+    async def delete_quiz(self, quiz_id: int, user_id: int) -> bool:
         """Delete a quiz."""
-        quiz = self.quiz_repository.get_by_id(quiz_id)
+        quiz = await self.quiz_repository.get_by_id(quiz_id)
         if not quiz:
             return False
         
         if quiz.user_id != user_id:
             raise ValueError("User does not have permission to delete this quiz")
         
-        return self.quiz_repository.delete(quiz_id)
+        return await self.quiz_repository.delete(quiz_id)

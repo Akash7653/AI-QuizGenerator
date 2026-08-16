@@ -1,6 +1,3 @@
-import os
-import sqlite3
-
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -15,135 +12,10 @@ from app.api.analytics.router import router as analytics_router
 from app.api.recommendation.router import router as recommendation_router
 from app.api.admin.router import router as admin_router
 from app.api.chatbot.router import router as chatbot_router
-from app.database.connection import engine
-from app.database.models.base import Base
-# Import all models to ensure they're registered with SQLAlchemy
-from app.database.models import (
-    User, Document, DocumentChunk, Embedding, Topic, Question,
-    Quiz, QuizQuestion, QuizAttempt, AttemptAnswer, Analytics,
-    Recommendation, Notification, UserActivity, AuditLog
-)
 from loguru import logger
-
-def ensure_sqlite_user_schema() -> None:
-    """Backfill required columns on older SQLite databases created before schema changes."""
-    if not settings.DATABASE_URL.startswith("sqlite"):
-        return
-
-    db_path = settings.DATABASE_URL.replace("sqlite:///", "", 1)
-    if not db_path or db_path == ":memory:":
-        return
-
-    absolute_db_path = os.path.abspath(db_path)
-    if not os.path.exists(absolute_db_path):
-        logger.info(f"No SQLite database file found at {absolute_db_path}; skipping schema migration")
-        return
-
-    try:
-        conn = sqlite3.connect(absolute_db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-        if cursor.fetchone() is None:
-            conn.close()
-            return
-
-        cursor.execute("PRAGMA table_info(users)")
-        rows = cursor.fetchall()
-        columns = {row[1] for row in rows}
-        legacy_name_in_schema = "name" in columns
-        username_missing = "username" not in columns
-
-        if legacy_name_in_schema or username_missing:
-            try:
-                cursor.execute("ALTER TABLE users RENAME TO users_legacy")
-                logger.warning("Renamed legacy SQLite users table to users_legacy to rebuild the schema")
-            except sqlite3.DatabaseError as exc:
-                logger.warning(f"Could not rename legacy SQLite users table for rebuild: {exc}")
-                conn.close()
-                return
-
-            legacy_columns = {row[1]: row for row in conn.execute("PRAGMA table_info(users_legacy)").fetchall()}
-            username_select = "name AS username" if "name" in legacy_columns and "username" not in legacy_columns else "COALESCE(username, email) AS username"
-            if "username" in legacy_columns and "name" in legacy_columns:
-                username_select = "COALESCE(username, name, email) AS username"
-
-            select_columns = [
-                "id",
-                username_select,
-                "email",
-                "password",
-                "role",
-                "profile_image" if "profile_image" in legacy_columns else "NULL AS profile_image",
-                "is_active" if "is_active" in legacy_columns else "1 AS is_active",
-                "is_verified" if "is_verified" in legacy_columns else "0 AS is_verified",
-                "created_at" if "created_at" in legacy_columns else "CURRENT_TIMESTAMP AS created_at",
-                "updated_at" if "updated_at" in legacy_columns else "CURRENT_TIMESTAMP AS updated_at",
-            ]
-
-            if "email" not in legacy_columns or "password" not in legacy_columns or "role" not in legacy_columns:
-                raise ValueError("Legacy SQLite users table is missing required columns for migration")
-
-            cursor.execute(
-                """
-                CREATE TABLE users (
-                    id INTEGER PRIMARY KEY,
-                    username VARCHAR(100) NOT NULL,
-                    email VARCHAR(255) NOT NULL UNIQUE,
-                    password VARCHAR(255) NOT NULL,
-                    role VARCHAR(50) NOT NULL,
-                    profile_image VARCHAR(500),
-                    is_active BOOLEAN NOT NULL DEFAULT 1,
-                    is_verified BOOLEAN NOT NULL DEFAULT 0,
-                    created_at DATETIME NOT NULL,
-                    updated_at DATETIME NOT NULL
-                )
-                """
-            )
-            cursor.execute(
-                "INSERT INTO users (id, username, email, password, role, profile_image, is_active, is_verified, created_at, updated_at) "
-                f"SELECT {', '.join(select_columns)} FROM users_legacy"
-            )
-            cursor.execute("DROP TABLE users_legacy")
-            logger.warning("Rebuilt SQLite users table without legacy name column and with username-based schema")
-
-        cursor.execute("UPDATE users SET username = email WHERE username IS NULL OR TRIM(COALESCE(username, '')) = ''")
-        logger.warning("Filled missing SQLite usernames from email values")
-
-        cursor.execute("PRAGMA table_info(users)")
-        updated_columns = {row[1] for row in cursor.fetchall()}
-
-        for column_name, column_type, default_value in [
-            ("profile_image", "VARCHAR(500)", "NULL"),
-            ("is_active", "BOOLEAN", "1"),
-            ("is_verified", "BOOLEAN", "0"),
-        ]:
-            if column_name in updated_columns:
-                continue
-            default_sql = " DEFAULT NULL" if default_value == "NULL" else f" DEFAULT {default_value}"
-            try:
-                cursor.execute(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}{default_sql}")
-                logger.warning(f"Added missing SQLite column: {column_name}")
-            except sqlite3.DatabaseError as exc:
-                logger.warning(f"Could not add SQLite column {column_name}: {exc}")
-
-        conn.commit()
-        conn.close()
-    except Exception as exc:
-        logger.warning(f"SQLite schema migration failed: {exc}")
-
 
 # Setup logging
 setup_logging()
-
-# Repair legacy SQLite schema before app startup work
-ensure_sqlite_user_schema()
-
-# Ensure the database schema exists before any DB session or startup logic touches it.
-try:
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database schema ensured for SQLite/PostgreSQL startup")
-except Exception as exc:
-    logger.warning(f"Schema creation at import time failed: {exc}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -189,31 +61,14 @@ async def startup_event():
     """Initialize database and other services on startup."""
     logger.info("Starting AI Quiz Generator Backend...")
     
-    # Create database tables (PostgreSQL)
+    # Initialize MongoDB
     try:
-        from app.database.models.base import Base
-        Base.metadata.create_all(bind=engine)
-        logger.info("PostgreSQL database tables created successfully")
+        from app.database.mongodb_connection import init_mongodb
+        await init_mongodb()
+        logger.info("MongoDB initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to create PostgreSQL tables: {str(e)}")
-        logger.warning("Application will continue but PostgreSQL features may be limited")
-    
-    # Initialize MongoDB (disabled for now - causing startup issues)
-    # Can be enabled later for hybrid PostgreSQL + MongoDB approach
-    
-    # Initialize vector database lazily when needed to keep startup memory usage low
-    # on Render Free.
-    logger.info("Vector database is lazy-loaded on demand to reduce memory usage at startup")
-    
-    # Test cache connection
-    try:
-        from app.utils.cache import cache
-        if cache.is_available():
-            logger.info("Redis cache connected")
-        else:
-            logger.info("Redis cache is disabled for this runtime; continuing without cache")
-    except Exception as e:
-        logger.warning(f"Cache initialization failed: {str(e)}")
+        logger.error(f"Failed to initialize MongoDB: {str(e)}")
+        logger.warning("Application will continue but MongoDB features may be limited")
     
     logger.info("AI Quiz Generator Backend started successfully")
 
@@ -223,14 +78,13 @@ async def shutdown_event():
     """Cleanup on shutdown."""
     logger.info("Shutting down AI Quiz Generator Backend...")
     
-    # Save vector database indexes
+    # Close MongoDB connection
     try:
-        from app.utils.vector_db import VectorStore
-        vector_store = VectorStore()
-        vector_store.save_all_indexes()
-        logger.info("Vector database indexes saved")
+        from app.database.mongodb_connection import close_mongodb
+        await close_mongodb()
+        logger.info("MongoDB connection closed")
     except Exception as e:
-        logger.warning(f"Failed to save vector database: {str(e)}")
+        logger.warning(f"Failed to close MongoDB connection: {str(e)}")
     
     logger.info("AI Quiz Generator Backend shut down successfully")
 
@@ -256,13 +110,11 @@ async def favicon():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    from app.utils.cache import cache
-    
     return {
         "status": "healthy",
         "version": settings.APP_VERSION,
-        "cache_available": cache.is_available(),
-        "environment": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT,
+        "database": "MongoDB"
     }
 
 
@@ -285,6 +137,7 @@ async def api_root():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
 
     # Uvicorn's watchdog reloader is unreliable on Windows in some setups,
     # causing the "WatchFiles detected changes... KeyboardInterrupt" loop even
