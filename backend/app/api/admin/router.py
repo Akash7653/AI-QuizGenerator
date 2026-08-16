@@ -12,6 +12,7 @@ from app.database.repository.question_repository import QuestionRepository
 import psutil
 import os
 from datetime import datetime
+from bson import ObjectId
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 

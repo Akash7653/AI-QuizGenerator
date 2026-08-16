@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional
 from datetime import datetime
 from app.database.mongodb_models import NotificationType
@@ -14,7 +14,7 @@ class NotificationBase(BaseModel):
 
 class NotificationCreate(NotificationBase):
     """Notification creation schema."""
-    user_id: int
+    user_id: str  # Changed from int to str for MongoDB ObjectId
 
 
 class NotificationUpdate(BaseModel):
@@ -24,8 +24,8 @@ class NotificationUpdate(BaseModel):
 
 class NotificationResponse(BaseModel):
     """Notification response schema."""
-    id: int
-    user_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    user_id: str  # Changed from int to str for MongoDB ObjectId
     notification_type: NotificationType
     title: str
     message: str
@@ -33,6 +33,16 @@ class NotificationResponse(BaseModel):
     action_url: Optional[str]
     created_at: datetime
     updated_at: datetime
+    
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+            if 'user_id' in values and hasattr(values['user_id'], '__str__'):
+                values['user_id'] = str(values['user_id'])
+        return values
     
     class Config:
         from_attributes = True

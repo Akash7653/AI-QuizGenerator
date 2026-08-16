@@ -20,7 +20,7 @@ class SystemHealthResponse(BaseModel):
 
 class UserManagementResponse(BaseModel):
     """User management response schema."""
-    id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
     username: str
     email: str
     is_active: bool
@@ -32,8 +32,8 @@ class UserManagementResponse(BaseModel):
 
 class QuizManagementResponse(BaseModel):
     """Quiz management response schema."""
-    id: int
-    user_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    user_id: str  # Changed from int to str for MongoDB ObjectId
     user_name: str
     title: str
     mode: str
@@ -68,7 +68,7 @@ class BulkActionRequest(BaseModel):
     """Bulk action request schema."""
     action: str = Field(..., description="Action to perform: delete, activate, deactivate")
     entity_type: str = Field(..., description="Type of entity: user, quiz, question")
-    entity_ids: List[int] = Field(..., min_items=1)
+    entity_ids: List[str] = Field(..., min_items=1)  # Changed from List[int] to List[str] for MongoDB ObjectId
     reason: Optional[str] = None
 
 

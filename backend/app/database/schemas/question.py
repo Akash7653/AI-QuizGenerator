@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from app.database.mongodb_models import QuestionType, Difficulty, BloomTaxonomy
@@ -22,8 +22,8 @@ class QuestionBase(BaseModel):
 class QuestionCreate(QuestionBase):
     """Question creation schema."""
     options: Optional[List[str]] = None
-    topic_id: Optional[int] = None
-    document_id: Optional[int] = None
+    topic_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
+    document_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
 
 
 class QuestionUpdate(BaseModel):
@@ -44,7 +44,7 @@ class QuestionUpdate(BaseModel):
 
 class QuestionResponse(BaseModel):
     """Question response schema."""
-    id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
     question_text: str
     question_type: QuestionType
     options: Optional[List[str]]
@@ -63,17 +63,25 @@ class QuestionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+        return values
+    
     class Config:
         from_attributes = True
 
 
 class QuestionGenerationRequest(BaseModel):
     """Question generation request schema."""
-    document_id: int
+    document_id: str  # Changed from int to str for MongoDB ObjectId
     question_type: QuestionType
     difficulty: Difficulty = Difficulty.MEDIUM
     count: int = Field(default=5, ge=1, le=50)
-    topic_id: Optional[int] = None
+    topic_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
     subtopic: Optional[str] = None
     bloom_taxonomy_level: Optional[BloomTaxonomy] = None
 

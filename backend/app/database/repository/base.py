@@ -1,6 +1,7 @@
 from typing import Generic, TypeVar, Type, List, Optional, Dict, Any
 from beanie import Document
 from beanie.operators import In
+from bson import ObjectId
 
 T = TypeVar('T', bound=Document)
 
@@ -11,9 +12,18 @@ class BaseRepository(Generic[T]):
     def __init__(self, model: Type[T]):
         self.model = model
     
-    async def get_by_id(self, id: int) -> Optional[T]:
+    async def get_by_id(self, id: str) -> Optional[T]:
         """Get entity by ID."""
-        return await self.model.find_one(self.model.id == id)
+        try:
+            # Convert string ID to ObjectId if it's a valid ObjectId string
+            if isinstance(id, str) and len(id) == 24:
+                try:
+                    id = ObjectId(id)
+                except:
+                    pass  # Keep as string if not a valid ObjectId
+            return await self.model.get(id)
+        except Exception:
+            return None
     
     async def get_all(
         self,
@@ -50,7 +60,7 @@ class BaseRepository(Generic[T]):
         await db_obj.save()
         return db_obj
     
-    async def delete(self, id: int) -> bool:
+    async def delete(self, id: str) -> bool:
         """Delete entity by ID."""
         obj = await self.get_by_id(id)
         if obj:
@@ -64,7 +74,7 @@ class BaseRepository(Generic[T]):
             return await self.model.find(filters).count()
         return await self.model.count()
     
-    async def exists(self, id: int) -> bool:
+    async def exists(self, id: str) -> bool:
         """Check if entity exists."""
         return await self.get_by_id(id) is not None
     
@@ -74,12 +84,12 @@ class BaseRepository(Generic[T]):
         await self.model.insert_many(db_objects)
         return db_objects
     
-    async def bulk_update(self, ids: List[int], obj_in: Dict[str, Any]) -> int:
+    async def bulk_update(self, ids: List[str], obj_in: Dict[str, Any]) -> int:
         """Bulk update entities."""
         result = await self.model.find(In(self.model.id, ids)).update({"$set": obj_in})
         return result.modified_count
     
-    async def bulk_delete(self, ids: List[int]) -> int:
+    async def bulk_delete(self, ids: List[str]) -> int:
         """Bulk delete entities."""
         result = await self.model.find(In(self.model.id, ids)).delete()
         return result.deleted_count

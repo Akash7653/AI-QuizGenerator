@@ -27,8 +27,8 @@ async def register(
     
     try:
         user = await auth_service.register_user(user_data)
-        # Set session after registration
-        request.session["user_id"] = user.id
+        # Set session after registration - store string ID
+        request.session["user_id"] = str(user.id)
         print(f"[Auth] User registered and session set: {user.email}")
         return user
     except ValueError as e:
@@ -54,9 +54,9 @@ async def login(
             detail="Incorrect email or password",
         )
     
-    # Set session instead of returning tokens
+    # Set session instead of returning tokens - store string ID
     print(f"[Auth] Setting session for user: {user.id}")
-    request.session["user_id"] = user.id
+    request.session["user_id"] = str(user.id)
     
     print(f"[Auth] User logged in: {user.email}")
     return user

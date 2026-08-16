@@ -79,7 +79,7 @@ class EmailUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     """User response schema."""
-    id: int
+    id: str  # Changed from int to str to support MongoDB ObjectId
     username: str
     name: Optional[str] = None
     email: str
@@ -97,6 +97,9 @@ class UserResponse(BaseModel):
                 values['username'] = values['name']
             if 'name' not in values and 'username' in values:
                 values['name'] = values['username']
+            # Convert ObjectId to string
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
         return values
 
     class Config:

@@ -72,6 +72,7 @@ class AuthService:
         user_dict['password'] = hashed_password
 
         user = await self.user_repository.create(user_dict)
+        # Store the string ID in session
         return user
     
     async def authenticate_user(self, identifier: str, password: str) -> Optional[UserModel]:

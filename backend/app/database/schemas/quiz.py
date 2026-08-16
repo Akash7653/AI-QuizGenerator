@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from datetime import datetime
 from app.database.mongodb_models import QuizMode, AttemptStatus
@@ -21,9 +21,9 @@ class QuizBase(BaseModel):
 
 class QuizCreate(QuizBase):
     """Quiz creation schema."""
-    document_id: Optional[int] = None
-    topic_id: Optional[int] = None
-    question_ids: Optional[List[int]] = None
+    document_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
+    topic_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
+    question_ids: Optional[List[str]] = None  # Changed from List[int] to List[str]
 
 
 class QuizUpdate(BaseModel):
@@ -41,8 +41,8 @@ class QuizUpdate(BaseModel):
 
 class QuizResponse(BaseModel):
     """Quiz response schema."""
-    id: int
-    user_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    user_id: str  # Changed from int to str for MongoDB ObjectId
     title: str
     description: Optional[str]
     mode: QuizMode
@@ -57,24 +57,34 @@ class QuizResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+            if 'user_id' in values and hasattr(values['user_id'], '__str__'):
+                values['user_id'] = str(values['user_id'])
+        return values
+    
     class Config:
         from_attributes = True
 
 
 class QuizGenerationRequest(BaseModel):
     """Quiz generation request schema."""
-    document_id: int
+    document_id: str  # Changed from int to str for MongoDB ObjectId
     mode: QuizMode = QuizMode.PRACTICE
     total_questions: int = Field(default=10, ge=1, le=100)
     difficulty: Optional[str] = None
-    topic_id: Optional[int] = None
+    topic_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
     subtopic: Optional[str] = None
     question_types: Optional[List[str]] = None
 
 
 class QuizAttemptCreate(BaseModel):
     """Quiz attempt creation schema."""
-    quiz_id: int
+    quiz_id: str  # Changed from int to str for MongoDB ObjectId
 
 
 class QuizAttemptUpdate(BaseModel):
@@ -85,9 +95,9 @@ class QuizAttemptUpdate(BaseModel):
 
 class QuizAttemptResponse(BaseModel):
     """Quiz attempt response schema."""
-    id: int
-    user_id: int
-    quiz_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    user_id: str  # Changed from int to str for MongoDB ObjectId
+    quiz_id: str  # Changed from int to str for MongoDB ObjectId
     status: AttemptStatus
     started_at: Optional[int]
     completed_at: Optional[int]
@@ -102,14 +112,26 @@ class QuizAttemptResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+            if 'user_id' in values and hasattr(values['user_id'], '__str__'):
+                values['user_id'] = str(values['user_id'])
+            if 'quiz_id' in values and hasattr(values['quiz_id'], '__str__'):
+                values['quiz_id'] = str(values['quiz_id'])
+        return values
+    
     class Config:
         from_attributes = True
 
 
 class QuizHistoryResponse(BaseModel):
     """Quiz history response with quiz details."""
-    id: int
-    quiz_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    quiz_id: str  # Changed from int to str for MongoDB ObjectId
     topic: str
     total_score: float
     percentage: float
@@ -120,13 +142,23 @@ class QuizHistoryResponse(BaseModel):
     question_type: str = "Mixed"
     source_type: str = "topic"
     
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+            if 'quiz_id' in values and hasattr(values['quiz_id'], '__str__'):
+                values['quiz_id'] = str(values['quiz_id'])
+        return values
+    
     class Config:
         from_attributes = True
 
 
 class QuizSubmissionRequest(BaseModel):
     """Quiz submission request schema."""
-    attempt_id: int
+    attempt_id: str  # Changed from int to str for MongoDB ObjectId
     answers: dict
 
 
@@ -151,7 +183,7 @@ class QuickSaveQuizRequest(BaseModel):
 
 class QuickSaveQuizResponse(BaseModel):
     """Quick save quiz response."""
-    id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
     topic: str
     score: int
     total_questions: int
@@ -159,6 +191,14 @@ class QuickSaveQuizResponse(BaseModel):
     time_taken: int
     difficulty: str
     completed_at: str
+    
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+        return values
     
     class Config:
         from_attributes = True

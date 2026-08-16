@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -14,8 +14,8 @@ class RecommendationBase(BaseModel):
 
 class RecommendationCreate(RecommendationBase):
     """Recommendation creation schema."""
-    topic_id: Optional[int] = None
-    quiz_id: Optional[int] = None
+    topic_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
+    quiz_id: Optional[str] = None  # Changed from int to str for MongoDB ObjectId
     recommendation_metadata: Optional[Dict[str, Any]] = None
 
 
@@ -27,13 +27,13 @@ class RecommendationUpdate(BaseModel):
 
 class RecommendationResponse(BaseModel):
     """Recommendation response schema."""
-    id: int
-    user_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    user_id: str  # Changed from int to str for MongoDB ObjectId
     recommendation_type: str
     title: str
     description: Optional[str]
-    topic_id: Optional[int]
-    quiz_id: Optional[int]
+    topic_id: Optional[str]  # Changed from int to str for MongoDB ObjectId
+    quiz_id: Optional[str]  # Changed from int to str for MongoDB ObjectId
     priority: int
     difficulty: Optional[str]
     recommendation_metadata: Optional[Dict[str, Any]]
@@ -41,6 +41,20 @@ class RecommendationResponse(BaseModel):
     is_dismissed: bool
     created_at: datetime
     updated_at: datetime
+    
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+            if 'user_id' in values and hasattr(values['user_id'], '__str__'):
+                values['user_id'] = str(values['user_id'])
+            if 'topic_id' in values and values['topic_id'] and hasattr(values['topic_id'], '__str__'):
+                values['topic_id'] = str(values['topic_id'])
+            if 'quiz_id' in values and values['quiz_id'] and hasattr(values['quiz_id'], '__str__'):
+                values['quiz_id'] = str(values['quiz_id'])
+        return values
     
     class Config:
         from_attributes = True

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -28,8 +28,8 @@ class AnalyticsUpdate(BaseModel):
 
 class AnalyticsResponse(BaseModel):
     """Analytics response schema."""
-    id: int
-    user_id: int
+    id: str  # Changed from int to str for MongoDB ObjectId
+    user_id: str  # Changed from int to str for MongoDB ObjectId
     overall_accuracy: float
     total_quizzes_attempted: int
     total_questions_attempted: int
@@ -42,6 +42,16 @@ class AnalyticsResponse(BaseModel):
     strong_areas: Optional[List[str]]
     created_at: datetime
     updated_at: datetime
+    
+    @model_validator(mode='before')
+    @classmethod
+    def convert_objectid(cls, values):
+        if isinstance(values, dict):
+            if 'id' in values and hasattr(values['id'], '__str__'):
+                values['id'] = str(values['id'])
+            if 'user_id' in values and hasattr(values['user_id'], '__str__'):
+                values['user_id'] = str(values['user_id'])
+        return values
     
     class Config:
         from_attributes = True

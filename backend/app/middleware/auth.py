@@ -23,7 +23,9 @@ async def get_current_user(
     
     # Get user from database
     user_repo = UserRepository()
-    user = await user_repo.get_by_id(user_id)
+    # Convert user_id to string if it's not already
+    user_id_str = str(user_id) if not isinstance(user_id, str) else user_id
+    user = await user_repo.get_by_id(user_id_str)
     print(f"[Auth Middleware] User from DB: {user}")
     
     if user is None:
