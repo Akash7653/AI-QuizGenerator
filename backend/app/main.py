@@ -37,8 +37,8 @@ setup_cors(app)
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
-    same_site="lax" if settings.DEBUG or settings.ENVIRONMENT.lower() != "production" else "none",
-    https_only=settings.ENVIRONMENT.lower() == "production",
+    same_site="none",  # Required for cross-origin between Vercel and Render
+    https_only=False,  # Allow HTTP for development/testing
     max_age=86400,
 )
 

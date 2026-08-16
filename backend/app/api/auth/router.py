@@ -95,17 +95,28 @@ async def test_register(
         )
 
 
-@router.post("/login", response_model=UserResponse)
+@router.post("/login")
 async def login(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends()
+    login_data: UserLogin = Body(...)
 ):
     """Login user and return user data (session-based auth)."""
     auth_service = AuthService()
 
-    identifier = form_data.username.strip()
-    user = await auth_service.authenticate_user(identifier, form_data.password)
+    # Handle both email and username
+    identifier = login_data.email or login_data.username
+    if not identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email or username is required"
+        )
+    
+    identifier = identifier.strip()
+    print(f"[Auth] Login attempt - Identifier: {identifier}")
+    
+    user = await auth_service.authenticate_user(identifier, login_data.password)
     if not user:
+        print(f"[Auth] Authentication failed for: {identifier}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -116,7 +127,17 @@ async def login(
     request.session["user_id"] = str(user.id)
     
     print(f"[Auth] User logged in: {user.email}")
-    return user
+    
+    # Return simple dict to avoid serialization issues
+    return {
+        "id": str(user.id),
+        "username": user.username,
+        "email": user.email,
+        "is_active": user.is_active,
+        "is_verified": user.is_verified,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at
+    }
 
 
 @router.post("/logout")
