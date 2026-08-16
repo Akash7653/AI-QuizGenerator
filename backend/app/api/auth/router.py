@@ -27,10 +27,30 @@ async def register(
     
     try:
         print(f"[Auth] Registration attempt - Email: {user_data.email}, Username: {user_data.username}")
+        
+        # Validate password requirements
+        password = user_data.password
+        if len(password) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(char.isupper() for char in password):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(char.islower() for char in password):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(char.isdigit() for char in password):
+            raise ValueError("Password must contain at least one digit")
+        
         user = await auth_service.register_user(user_data)
+        print(f"[Auth] User created successfully: {user.id}")
+        
         # Set session after registration - store string ID
-        request.session["user_id"] = str(user.id)
-        print(f"[Auth] User registered and session set: {user.email}")
+        try:
+            request.session["user_id"] = str(user.id)
+            print(f"[Auth] Session set: {user.id}")
+        except Exception as session_error:
+            print(f"[Auth] Session error: {str(session_error)}")
+            # Continue even if session fails
+        
+        print(f"[Auth] Returning user response")
         return user
     except ValueError as e:
         print(f"[Auth] Validation error: {str(e)}")
@@ -45,6 +65,28 @@ async def register(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {str(e)}"
+        )
+
+
+@router.post("/test-register")
+async def test_register(
+    user_data: UserCreate
+):
+    """Test registration without session."""
+    auth_service = AuthService()
+    
+    try:
+        print(f"[Auth] Test registration - Email: {user_data.email}, Username: {user_data.username}")
+        user = await auth_service.register_user(user_data)
+        print(f"[Auth] Test user created: {user.id}")
+        return {"message": "Test registration successful", "user_id": str(user.id)}
+    except Exception as e:
+        print(f"[Auth] Test registration error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Test registration failed: {str(e)}"
         )
 
 
