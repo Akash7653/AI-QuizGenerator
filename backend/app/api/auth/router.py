@@ -17,7 +17,7 @@ class RefreshTokenRequest(BaseModel):
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserCreate,
     request: Request
@@ -43,15 +43,20 @@ async def register(
         print(f"[Auth] User created successfully: {user.id}")
         
         # Set session after registration - store string ID
-        try:
-            request.session["user_id"] = str(user.id)
-            print(f"[Auth] Session set: {user.id}")
-        except Exception as session_error:
-            print(f"[Auth] Session error: {str(session_error)}")
-            # Continue even if session fails
+        request.session["user_id"] = str(user.id)
+        print(f"[Auth] Session set: {user.id}")
         
+        # Return simple dict to avoid serialization issues
         print(f"[Auth] Returning user response")
-        return user
+        return {
+            "id": str(user.id),
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_verified": user.is_verified,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at
+        }
     except ValueError as e:
         print(f"[Auth] Validation error: {str(e)}")
         raise HTTPException(
