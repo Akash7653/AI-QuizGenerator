@@ -48,6 +48,7 @@ class DocumentModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "documents"
         indexes = [
             "user_id",
@@ -70,6 +71,7 @@ class DocumentChunkModel(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "document_chunks"
         indexes = [
             "document_id",
@@ -90,12 +92,14 @@ class EmbeddingModel(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "embeddings"
         indexes = [
             "document_id",
             "chunk_id",
             "model_name"
         ]
+        protected_namespaces = ()  # Allow model_name field
 
 
 # User related models
@@ -121,6 +125,7 @@ class UserModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "users"
         indexes = [
             "username",
@@ -142,6 +147,7 @@ class TopicModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "topics"
         indexes = [
             "name",
@@ -210,6 +216,7 @@ class QuestionModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "questions"
         indexes = [
             "topic_id",
@@ -264,6 +271,7 @@ class QuizModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "quizzes"
         indexes = [
             "user_id",
@@ -309,6 +317,7 @@ class QuizAttemptModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "quiz_attempts"
         indexes = [
             "user_id",
@@ -332,6 +341,7 @@ class AttemptAnswerModel(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "attempt_answers"
         indexes = [
             "attempt_id",
@@ -362,6 +372,7 @@ class AnalyticsModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "analytics"
         indexes = [
             "user_id"
@@ -392,6 +403,7 @@ class RecommendationModel(Document):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "recommendations"
         indexes = [
             "user_id",
@@ -426,6 +438,7 @@ class NotificationModel(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "notifications"
         indexes = [
             "user_id",
@@ -452,6 +465,7 @@ class UserActivityModel(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Settings:
+        protected_namespaces = ()
         name = "user_activities"
         indexes = [
             "user_id",

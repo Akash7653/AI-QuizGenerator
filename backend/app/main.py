@@ -59,18 +59,21 @@ app.include_router(chatbot_router, prefix=settings.API_V1_PREFIX)
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and other services on startup."""
-    logger.info("Starting AI Quiz Generator Backend...")
+    import sys
+    logger.info("🚀 Starting AI Quiz Generator Backend...")
+    logger.info(f"📦 Python version: {sys.version}")
+    logger.info(f"🔧 Environment: {settings.ENVIRONMENT}")
     
     # Initialize MongoDB
     try:
         from app.database.mongodb_connection import init_mongodb
         await init_mongodb()
-        logger.info("MongoDB initialized successfully")
+        logger.info("✅ MongoDB initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize MongoDB: {str(e)}")
-        logger.warning("Application will continue but MongoDB features may be limited")
+        logger.error(f"❌ Failed to initialize MongoDB: {str(e)}")
+        logger.warning("⚠️  Application will continue but MongoDB features may be limited")
     
-    logger.info("AI Quiz Generator Backend started successfully")
+    logger.info("✅ AI Quiz Generator Backend started successfully")
 
 
 @app.on_event("shutdown")
@@ -110,11 +113,22 @@ async def favicon():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    # Check MongoDB connection
+    mongodb_status = "disconnected"
+    try:
+        from app.database.mongodb_connection import get_mongodb
+        client = await get_mongodb()
+        await client.admin.command('ping')
+        mongodb_status = "connected"
+    except Exception as e:
+        mongodb_status = f"error: {str(e)}"
+    
     return {
         "status": "healthy",
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
-        "database": "MongoDB"
+        "database": "MongoDB",
+        "mongodb_status": mongodb_status
     }
 
 
