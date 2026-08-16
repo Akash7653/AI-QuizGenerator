@@ -6,15 +6,12 @@ from app.config.settings import settings
 
 
 class CORSMiddlewareOverride(BaseHTTPMiddleware):
-    """Custom CORS middleware to ensure headers are added to all responses including preflight."""
+    """Custom CORS middleware to ensure headers are added to ALL responses including errors."""
     
     async def dispatch(self, request: Request, call_next):
-        # Handle preflight OPTIONS requests before they reach the main app
+        # Handle preflight OPTIONS requests
         if request.method == "OPTIONS":
             origin = request.headers.get("origin")
-            request_method = request.headers.get("access-control-request-method")
-            request_headers = request.headers.get("access-control-request-headers")
-            
             if origin:
                 allowed_origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
                     "http://localhost:3000",
@@ -32,17 +29,37 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
                     response.headers["Access-Control-Allow-Credentials"] = "true"
                     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
                     response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept, origin"
-                    if request_method:
-                        response.headers["Access-Control-Allow-Methods"] = request_method
-                    if request_headers:
-                        response.headers["Access-Control-Allow-Headers"] = request_headers
                     response.headers["Access-Control-Max-Age"] = "600"
                     return response
             return Response(status_code=403)
         
-        response = await call_next(request)
+        # Process the request
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            # If an exception occurs, create a response with CORS headers
+            origin = request.headers.get("origin")
+            if origin:
+                allowed_origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
+                    "http://localhost:3000",
+                    "http://localhost:4174",
+                    "http://localhost:5173",
+                    "http://localhost:8000",
+                    "https://ai-quiz-generator-orcin.vercel.app",
+                    "https://ai-quiz-generator.vercel.app",
+                    "https://ai-quizgenerator.onrender.com",
+                ]
+                
+                if origin in allowed_origins:
+                    response = Response(content=f"Internal Server Error: {str(e)}", status_code=500)
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Access-Control-Allow-Credentials"] = "true"
+                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                    response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept, origin"
+                    return response
+            raise
         
-        # Add CORS headers to all responses
+        # Add CORS headers to all successful responses
         origin = request.headers.get("origin")
         if origin:
             allowed_origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
@@ -87,7 +104,7 @@ def setup_cors(app: FastAPI):
     )
 
     # Add custom middleware FIRST (will be last in the middleware chain)
-    # This ensures it handles preflight requests before they reach other middleware
+    # This ensures it handles preflight requests and adds CORS to error responses
     app.add_middleware(CORSMiddlewareOverride)
     
     # Then add FastAPI's CORS middleware
