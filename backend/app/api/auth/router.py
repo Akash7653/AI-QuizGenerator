@@ -98,31 +98,15 @@ async def test_register(
 @router.post("/login")
 async def login(
     request: Request,
-    login_data: dict = Body(...)
+    form_data: OAuth2PasswordRequestForm = Depends()
 ):
     """Login user and return user data (session-based auth)."""
     auth_service = AuthService()
 
-    # Handle different request formats
-    if isinstance(login_data, dict):
-        username = login_data.get("username") or login_data.get("email") or login_data.get("name")
-        password = login_data.get("password")
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid request format"
-        )
-    
-    if not username or not password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username and password are required"
-        )
-    
-    identifier = str(username).strip()
+    identifier = form_data.username.strip()
     print(f"[Auth] Login attempt - Identifier: {identifier}")
     
-    user = await auth_service.authenticate_user(identifier, password)
+    user = await auth_service.authenticate_user(identifier, form_data.password)
     if not user:
         print(f"[Auth] Authentication failed for: {identifier}")
         raise HTTPException(
