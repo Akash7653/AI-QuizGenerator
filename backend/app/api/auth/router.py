@@ -98,23 +98,31 @@ async def test_register(
 @router.post("/login")
 async def login(
     request: Request,
-    login_data: UserLogin = Body(...)
+    login_data: dict = Body(...)
 ):
     """Login user and return user data (session-based auth)."""
     auth_service = AuthService()
 
-    # Handle both email and username
-    identifier = login_data.email or login_data.username
-    if not identifier:
+    # Handle different request formats
+    if isinstance(login_data, dict):
+        username = login_data.get("username") or login_data.get("email") or login_data.get("name")
+        password = login_data.get("password")
+    else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email or username is required"
+            detail="Invalid request format"
         )
     
-    identifier = identifier.strip()
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username and password are required"
+        )
+    
+    identifier = str(username).strip()
     print(f"[Auth] Login attempt - Identifier: {identifier}")
     
-    user = await auth_service.authenticate_user(identifier, login_data.password)
+    user = await auth_service.authenticate_user(identifier, password)
     if not user:
         print(f"[Auth] Authentication failed for: {identifier}")
         raise HTTPException(
