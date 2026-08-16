@@ -23,7 +23,6 @@ class UserManagementResponse(BaseModel):
     id: int
     username: str
     email: str
-    role: str
     is_active: bool
     is_verified: bool
     total_quizzes: int

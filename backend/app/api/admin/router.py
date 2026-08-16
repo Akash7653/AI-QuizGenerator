@@ -5,7 +5,7 @@ from app.database.schemas.admin import (
     AdminDashboardResponse, SystemLogsResponse, BulkActionRequest, BulkActionResponse
 )
 from app.database.mongodb_models import UserModel, QuizModel, QuestionModel
-from app.middleware.auth import get_current_admin_user
+from app.middleware.auth import get_current_user
 from app.database.repository.user_repository import UserRepository
 from app.database.repository.quiz_repository import QuizRepository
 from app.database.repository.question_repository import QuestionRepository
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 @router.get("/dashboard", response_model=AdminDashboardResponse)
 async def get_admin_dashboard(
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Get admin dashboard data."""
     user_repo = UserRepository()
@@ -56,7 +56,7 @@ async def get_admin_dashboard(
 async def get_all_users(
     skip: int = 0,
     limit: int = 100,
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Get all users (admin only)."""
     user_repo = UserRepository()
@@ -67,7 +67,6 @@ async def get_all_users(
             id=str(user.id),
             username=user.username,
             email=user.email,
-            role=user.role.value,
             is_active=user.is_active,
             is_verified=user.is_verified,
             total_quizzes=0,  # Would need to calculate
@@ -82,7 +81,7 @@ async def get_all_users(
 async def get_all_quizzes(
     skip: int = 0,
     limit: int = 100,
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Get all quizzes (admin only)."""
     quiz_repo = QuizRepository()
@@ -105,7 +104,7 @@ async def get_all_quizzes(
 
 @router.get("/system", response_model=SystemHealthResponse)
 async def get_system_health(
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Get system health status."""
     # Check database connection
@@ -164,7 +163,7 @@ async def get_system_health(
 @router.delete("/user/{user_id}")
 async def delete_user(
     user_id: str,
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Delete a user (admin only)."""
     user_repo = UserRepository()
@@ -174,13 +173,6 @@ async def delete_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
-        )
-
-    # Prevent deleting admin users
-    if user.role.value == "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot delete admin users"
         )
 
     success = await user_repo.delete(user_id)
@@ -196,7 +188,7 @@ async def delete_user(
 @router.delete("/quiz/{quiz_id}")
 async def delete_quiz(
     quiz_id: str,
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Delete a quiz (admin only)."""
     quiz_repo = QuizRepository()
@@ -221,7 +213,7 @@ async def delete_quiz(
 @router.post("/bulk-action", response_model=BulkActionResponse)
 async def bulk_action(
     request: BulkActionRequest,
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Perform bulk actions on entities."""
     failed_ids = []
@@ -234,15 +226,12 @@ async def bulk_action(
             if request.action == "delete":
                 for user_id in request.entity_ids:
                     user = await user_repo.get_by_id(user_id)
-                    if user and user.role.value != "admin":
+                    if user:
                         if await user_repo.delete(user_id):
                             success_count += 1
                         else:
                             failed_ids.append(user_id)
                             errors.append(f"Failed to delete user {user_id}")
-                    else:
-                        failed_ids.append(user_id)
-                        errors.append(f"Cannot delete admin user {user_id}")
             elif request.action == "activate":
                 for user_id in request.entity_ids:
                     user = await user_repo.activate_user(user_id)
@@ -294,7 +283,7 @@ async def bulk_action(
 async def get_system_logs(
     page: int = 1,
     page_size: int = 50,
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Get system logs (admin only)."""
     # This would read from log files
@@ -326,7 +315,7 @@ async def get_system_logs(
 
 @router.get("/stats")
 async def get_admin_stats(
-    current_user: UserModel = Depends(get_current_admin_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Get administrative statistics."""
     user_repo = UserRepository()

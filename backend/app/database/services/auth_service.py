@@ -161,12 +161,12 @@ class AuthService:
     # Role-based methods - removed since role field is deprecated
     # def is_admin(self, user: UserModel) -> bool:
     #     """Check if user is admin."""
-    #     return user.role == UserRole.ADMIN
+    #     return False
     
     # def is_teacher(self, user: UserModel) -> bool:
     #     """Check if user is teacher."""
-    #     return user.role == UserRole.TEACHER
+    #     return False
     
     # def is_student(self, user: UserModel) -> bool:
     #     """Check if user is student."""
-    #     return user.role == UserRole.STUDENT
+    #     return True

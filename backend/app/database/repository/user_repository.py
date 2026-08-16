@@ -26,9 +26,9 @@ class UserRepository(BaseRepository[UserModel]):
         return await self.model.find(self.model.is_active == True).skip(skip).limit(limit).to_list()
     
     # Role-based methods removed since role field is deprecated
-    # async def get_users_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> List[UserModel]:
-    #     """Get users by role."""
-    #     return await self.model.find(self.model.role == role).skip(skip).limit(limit).to_list()
+    # async def get_users_by_role(self, skip: int = 0, limit: int = 100) -> List[UserModel]:
+    #     """Get users by role - deprecated."""
+    #     return []
     
     async def get_verified_users(self, skip: int = 0, limit: int = 100) -> List[UserModel]:
         """Get all verified users."""
