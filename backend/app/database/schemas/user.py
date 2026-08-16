@@ -1,14 +1,12 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
-from app.database.mongodb_models import UserRole
 
 
 class UserBase(BaseModel):
     """Base user schema."""
     username: Optional[str] = Field(None, min_length=2, max_length=100)
     email: EmailStr
-    role: UserRole = UserRole.STUDENT
 
     @model_validator(mode='before')
     @classmethod
@@ -85,7 +83,6 @@ class UserResponse(BaseModel):
     username: str
     name: Optional[str] = None
     email: str
-    role: UserRole
     profile_image: Optional[str] = None
     is_active: bool
     is_verified: bool

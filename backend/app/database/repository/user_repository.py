@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from app.database.mongodb_models import UserModel, UserRole
+from app.database.mongodb_models import UserModel
 from app.database.repository.base import BaseRepository
 
 
@@ -25,9 +25,10 @@ class UserRepository(BaseRepository[UserModel]):
         """Get all active users."""
         return await self.model.find(self.model.is_active == True).skip(skip).limit(limit).to_list()
     
-    async def get_users_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> List[UserModel]:
-        """Get users by role."""
-        return await self.model.find(self.model.role == role).skip(skip).limit(limit).to_list()
+    # Role-based methods removed since role field is deprecated
+    # async def get_users_by_role(self, role: UserRole, skip: int = 0, limit: int = 100) -> List[UserModel]:
+    #     """Get users by role."""
+    #     return await self.model.find(self.model.role == role).skip(skip).limit(limit).to_list()
     
     async def get_verified_users(self, skip: int = 0, limit: int = 100) -> List[UserModel]:
         """Get all verified users."""
@@ -100,13 +101,8 @@ class UserRepository(BaseRepository[UserModel]):
         active_users = await self.model.find(self.model.is_active == True).count()
         verified_users = await self.model.find(self.model.is_verified == True).count()
         
-        role_stats = {}
-        for role in UserRole:
-            role_stats[role.value] = await self.model.find(self.model.role == role).count()
-        
         return {
             "total_users": total_users,
             "active_users": active_users,
-            "verified_users": verified_users,
-            "role_distribution": role_stats
+            "verified_users": verified_users
         }

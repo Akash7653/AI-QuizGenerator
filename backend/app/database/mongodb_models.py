@@ -85,7 +85,7 @@ class EmbeddingModel(Document):
     document_id: int = Indexed()
     chunk_id: Optional[int] = Indexed()
     embedding_vector: List[float]  # Store as list, Beanie handles serialization
-    model_name: str = Indexed()
+    embedding_model_name: str = Indexed()  # Renamed to avoid Pydantic warning
     dimension: int
     metadata: dict = Field(default_factory=dict)
     
@@ -97,26 +97,18 @@ class EmbeddingModel(Document):
         indexes = [
             "document_id",
             "chunk_id",
-            "model_name"
+            "embedding_model_name"
         ]
         protected_namespaces = ()  # Allow model_name field
 
 
 # User related models
-class UserRole(str, Enum):
-    """User role enumeration."""
-    STUDENT = "student"
-    TEACHER = "teacher"
-    ADMIN = "admin"
-
-
 class UserModel(Document):
     """MongoDB model for user authentication and authorization."""
     
     username: str = Indexed(unique=True)
     email: str = Indexed(unique=True)
     password: str  # Hashed password
-    role: UserRole = UserRole.STUDENT
     profile_image: Optional[str] = None
     is_active: bool = True
     is_verified: bool = False
@@ -130,7 +122,6 @@ class UserModel(Document):
         indexes = [
             "username",
             "email",
-            "role",
             "is_active"
         ]
 

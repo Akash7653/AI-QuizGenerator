@@ -68,54 +68,55 @@ async def get_current_verified_user(
     return current_user
 
 
-async def get_current_admin_user(
-    current_user = Depends(get_current_user)
-):
-    """Dependency to get current admin user."""
-    if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
-        )
-    
-    if current_user.role.value != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have admin privileges"
-        )
-    
-    return current_user
+# Role-based dependencies - removed since role field is deprecated
+# async def get_current_admin_user(
+#     current_user = Depends(get_current_user)
+# ):
+#     """Dependency to get current admin user."""
+#     if not current_user.is_active:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="User account is inactive"
+#         )
+#     
+#     if current_user.role.value != "admin":
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="User does not have admin privileges"
+#         )
+#     
+#     return current_user
 
 
-async def get_current_teacher_user(
-    current_user = Depends(get_current_user)
-):
-    """Dependency to get current teacher user."""
-    if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
-        )
-    
-    if current_user.role.value not in ["teacher", "admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have teacher privileges"
-        )
-    
-    return current_user
+# async def get_current_teacher_user(
+#     current_user = Depends(get_current_user)
+# ):
+#     """Dependency to get current teacher user."""
+#     if not current_user.is_active:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="User account is inactive"
+#         )
+#     
+#     if current_user.role.value not in ["teacher", "admin"]:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="User does not have teacher privileges"
+#         )
+#     
+#     return current_user
 
 
-class RoleChecker:
-    """Role checker dependency for custom role validation."""
-    
-    def __init__(self, allowed_roles: list):
-        self.allowed_roles = allowed_roles
-    
-    def __call__(self, current_user = Depends(get_current_user)):
-        if current_user.role not in self.allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User role '{current_user.role}' is not allowed"
-            )
-        return current_user
+# class RoleChecker:
+#     """Role checker dependency for custom role validation."""
+#     
+#     def __init__(self, allowed_roles: list):
+#         self.allowed_roles = allowed_roles
+#     
+#     def __call__(self, current_user = Depends(get_current_user)):
+#         if current_user.role not in self.allowed_roles:
+#             raise HTTPException(
+#                 status_code=status.HTTP_403_FORBIDDEN,
+#                 detail=f"User role '{current_user.role}' is not allowed"
+#             )
+#         return current_user

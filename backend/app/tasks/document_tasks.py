@@ -109,7 +109,7 @@ def generate_document_embeddings(document_id: int):
                     document_id=document_id,
                     chunk_id=embedding_data.get("chunk_index"),
                     embedding_vector=embedding_data["embedding_vector"],
-                    model_name=embedding_data.get("model_name", "default"),
+                    embedding_model_name=embedding_data.get("model_name", "default"),
                     dimension=len(embedding_data["embedding_vector"]),
                     metadata=embedding_data.get("metadata", {})
                 )

@@ -1,6 +1,37 @@
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.config.settings import settings
+
+
+class CORSMiddlewareOverride(BaseHTTPMiddleware):
+    """Custom CORS middleware to ensure headers are added to all responses including errors."""
+    
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Add CORS headers to all responses
+        origin = request.headers.get("origin")
+        if origin:
+            # Check if origin is allowed
+            allowed_origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
+                "http://localhost:3000",
+                "http://localhost:4174",
+                "http://localhost:5173",
+                "http://localhost:8000",
+                "https://ai-quiz-generator-orcin.vercel.app",
+                "https://ai-quiz-generator.vercel.app",
+                "https://ai-quizgenerator.onrender.com",
+            ]
+            
+            if origin in allowed_origins:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
 
 
 def setup_cors(app: FastAPI):
@@ -33,3 +64,6 @@ def setup_cors(app: FastAPI):
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
     )
+    
+    # Add custom middleware to ensure CORS headers on error responses
+    app.add_middleware(CORSMiddlewareOverride)

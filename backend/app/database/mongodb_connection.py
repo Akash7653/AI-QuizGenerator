@@ -46,6 +46,11 @@ async def init_mongodb():
             RecommendationModel, NotificationModel, UserActivityModel
         )
         
+        # Suppress Pydantic warnings for model_ namespace
+        import warnings
+        from pydantic._internal._fields import UserWarning
+        warnings.filterwarnings("ignore", message="Field.*has conflict with protected namespace")
+        
         # Parse database name from URL or use default
         from urllib.parse import urlparse
         parsed = urlparse(settings.MONGODB_URL)

@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from app.config.settings import settings
-from app.database.mongodb_models import UserModel, UserRole
+from app.database.mongodb_models import UserModel
 from app.database.repository.user_repository import UserRepository
 from app.database.schemas.user import UserCreate, UserUpdate
 
@@ -158,14 +158,15 @@ class AuthService:
         """Verify user email."""
         return await self.user_repository.verify_user(user_id)
     
-    def is_admin(self, user: UserModel) -> bool:
-        """Check if user is admin."""
-        return user.role == UserRole.ADMIN
+    # Role-based methods - removed since role field is deprecated
+    # def is_admin(self, user: UserModel) -> bool:
+    #     """Check if user is admin."""
+    #     return user.role == UserRole.ADMIN
     
-    def is_teacher(self, user: UserModel) -> bool:
-        """Check if user is teacher."""
-        return user.role == UserRole.TEACHER
+    # def is_teacher(self, user: UserModel) -> bool:
+    #     """Check if user is teacher."""
+    #     return user.role == UserRole.TEACHER
     
-    def is_student(self, user: UserModel) -> bool:
-        """Check if user is student."""
-        return user.role == UserRole.STUDENT
+    # def is_student(self, user: UserModel) -> bool:
+    #     """Check if user is student."""
+    #     return user.role == UserRole.STUDENT
