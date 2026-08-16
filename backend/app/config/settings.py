@@ -88,6 +88,14 @@ class Settings(BaseSettings):
     ENABLE_EMAIL_VERIFICATION: bool = True
     ENABLE_OCR: bool = True
     
+    # Deprecated fields (kept for compatibility with old .env files)
+    DATABASE_URL: str = Field(default="", description="Deprecated - MongoDB is now used")
+    DATABASE_POOL_SIZE: str = Field(default="20", description="Deprecated")
+    DATABASE_MAX_OVERFLOW: str = Field(default="10", description="Deprecated")
+    REDIS_URL: str = Field(default="", description="Deprecated")
+    REDIS_CACHE_TTL: str = Field(default="0", description="Deprecated")
+    ENABLE_VECTOR_SEARCH: str = Field(default="False", description="Deprecated")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

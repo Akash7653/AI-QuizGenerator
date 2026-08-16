@@ -97,7 +97,6 @@ async def test_register(
 
 @router.post("/login")
 async def login(
-    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     """Login user and return JWT token (JWT-only authentication)."""
