@@ -62,7 +62,7 @@ class RecommendationService:
     def _generate_weak_topic_recommendations(
         self,
         user_id: int,
-        analytics: Analytics
+        analytics: AnalyticsModel
     ) -> List[Dict[str, Any]]:
         """Generate recommendations for weak topics."""
         recommendations = []
@@ -139,7 +139,7 @@ class RecommendationService:
     def _generate_revision_recommendations(
         self,
         user_id: int,
-        analytics: Analytics
+        analytics: AnalyticsModel
     ) -> List[Dict[str, Any]]:
         """Generate revision recommendations."""
         recommendations = []
@@ -174,7 +174,7 @@ class RecommendationService:
     def _generate_next_topic_recommendations(
         self,
         user_id: int,
-        analytics: Analytics
+        analytics: AnalyticsModel
     ) -> List[Dict[str, Any]]:
         """Generate recommendations for next topics to learn."""
         recommendations = []
@@ -200,7 +200,7 @@ class RecommendationService:
         
         return recommendations
     
-    def _get_recommended_difficulty(self, topic: str, analytics: Analytics) -> str:
+    def _get_recommended_difficulty(self, topic: str, analytics: AnalyticsModel) -> str:
         """Get recommended difficulty level for a topic."""
         topic_performance = analytics.topic_performance.get(topic, {})
         accuracy = topic_performance.get("accuracy", 0)
