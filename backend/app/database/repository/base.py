@@ -47,9 +47,15 @@ class BaseRepository(Generic[T]):
     
     async def create(self, obj_in: Dict[str, Any]) -> T:
         """Create new entity."""
-        db_obj = self.model(**obj_in)
-        await db_obj.insert()
-        return db_obj
+        try:
+            db_obj = self.model(**obj_in)
+            await db_obj.insert()
+            return db_obj
+        except Exception as e:
+            # Handle duplicate key errors
+            if "duplicate key" in str(e).lower() or "E11000" in str(e):
+                raise ValueError("A record with this information already exists")
+            raise
     
     async def update(self, db_obj: T, obj_in: Dict[str, Any]) -> T:
         """Update existing entity."""

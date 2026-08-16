@@ -71,9 +71,16 @@ class AuthService:
         user_dict['username'] = username
         user_dict['password'] = hashed_password
 
-        user = await self.user_repository.create(user_dict)
-        # Store the string ID in session
-        return user
+        try:
+            user = await self.user_repository.create(user_dict)
+            return user
+        except ValueError as e:
+            raise e  # Re-raise ValueError as-is
+        except Exception as e:
+            print(f"[AuthService] Registration error: {str(e)}")
+            if "duplicate key" in str(e).lower() or "E11000" in str(e):
+                raise ValueError("Username or email already exists")
+            raise ValueError(f"Registration failed: {str(e)}")
     
     async def authenticate_user(self, identifier: str, password: str) -> Optional[UserModel]:
         """Authenticate a user by either email or username."""

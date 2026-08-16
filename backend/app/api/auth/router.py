@@ -26,18 +26,22 @@ async def register(
     auth_service = AuthService()
     
     try:
+        print(f"[Auth] Registration attempt - Email: {user_data.email}, Username: {user_data.username}")
         user = await auth_service.register_user(user_data)
         # Set session after registration - store string ID
         request.session["user_id"] = str(user.id)
         print(f"[Auth] User registered and session set: {user.email}")
         return user
     except ValueError as e:
+        print(f"[Auth] Validation error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
         print(f"[Auth] Registration error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {str(e)}"
