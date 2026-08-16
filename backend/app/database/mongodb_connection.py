@@ -17,10 +17,6 @@ async def get_mongodb():
 async def init_mongodb():
     """Initialize MongoDB connection and Beanie ODM."""
     try:
-        # Force log to stdout
-        logger.remove()
-        logger.add(sys.stdout, level="INFO")
-        
         logger.info(f"Attempting to connect to MongoDB...")
         logger.info(f"MongoDB URL: {settings.MONGODB_URL[:20]}...{settings.MONGODB_URL[-10:]}")
         
@@ -45,11 +41,6 @@ async def init_mongodb():
             QuizAttemptModel, AttemptAnswerModel, AnalyticsModel,
             RecommendationModel, NotificationModel, UserActivityModel
         )
-        
-        # Suppress Pydantic warnings for model_ namespace
-        import warnings
-        from pydantic._internal._fields import UserWarning
-        warnings.filterwarnings("ignore", message="Field.*has conflict with protected namespace")
         
         # Parse database name from URL or use default
         from urllib.parse import urlparse
@@ -82,8 +73,8 @@ async def init_mongodb():
         
     except Exception as e:
         logger.error(f"❌ MongoDB initialization failed: {str(e)}")
-        logger.error("Application will continue without MongoDB features")
-        raise
+        logger.warning("⚠️  Application will continue without MongoDB features")
+        # Don't raise - allow app to start even if Beanie fails
 
 async def close_mongodb():
     """Close MongoDB connection."""
