@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const getApiBaseUrl = () => {
   const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-  const baseUrl = configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, '') : 'http://localhost:8000';
+  // Default to production Render backend
+  const baseUrl = configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, '') : 'https://ai-quizgenerator.onrender.com';
 
   if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
     return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
@@ -37,17 +38,6 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('quizgen_token');
-      localStorage.removeItem('quizgen_auth');
-    }
-    return Promise.reject(error);
-  },
-);
-
-api.interceptors.response.use(
-  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('quizgen_token');

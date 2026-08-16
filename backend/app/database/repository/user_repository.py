@@ -46,7 +46,7 @@ class UserRepository(BaseRepository[UserModel]):
             ]
         }).skip(skip).limit(limit).to_list()
     
-    async def activate_user(self, user_id: int) -> Optional[UserModel]:
+    async def activate_user(self, user_id: str) -> Optional[UserModel]:
         """Activate user account."""
         user = await self.get_by_id(user_id)
         if user:
@@ -54,7 +54,7 @@ class UserRepository(BaseRepository[UserModel]):
             await user.save()
         return user
     
-    async def deactivate_user(self, user_id: int) -> Optional[UserModel]:
+    async def deactivate_user(self, user_id: str) -> Optional[UserModel]:
         """Deactivate user account."""
         user = await self.get_by_id(user_id)
         if user:

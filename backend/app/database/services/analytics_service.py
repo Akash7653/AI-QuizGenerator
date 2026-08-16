@@ -17,7 +17,7 @@ class AnalyticsService:
         self.quiz_attempt_repository = QuizAttemptRepository()
         self.question_repository = QuestionRepository()
     
-    async def get_user_analytics(self, user_id: int) -> AnalyticsModel:
+    async def get_user_analytics(self, user_id: str) -> AnalyticsModel:
         """Get or create analytics for user."""
         analytics = await self.analytics_repository.get_by_user_id(user_id)
         
@@ -43,7 +43,7 @@ class AnalyticsService:
         await self._sync_analytics_from_attempts(user_id, analytics)
         return analytics
 
-    async def _sync_analytics_from_attempts(self, user_id: int, analytics: AnalyticsModel) -> None:
+    async def _sync_analytics_from_attempts(self, user_id: str, analytics: AnalyticsModel) -> None:
         """Recalculate analytics from the user's completed quiz attempts."""
         attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 500)
         if not attempts:
@@ -256,43 +256,94 @@ class AnalyticsService:
         analytics.weak_areas = weak_areas
         analytics.strong_areas = strong_areas
     
-    async def get_dashboard_data(self, user_id: int) -> Dict[str, Any]:
+    async def get_dashboard_data(self, user_id: str) -> Dict[str, Any]:
         """Get comprehensive dashboard data."""
-        analytics = await self.get_user_analytics(user_id)
-        
-        # Get recent attempts
-        recent_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 10)
-        
-        # Calculate progress data
-        daily_progress = await self._calculate_progress(user_id, days=7)
-        weekly_progress = await self._calculate_progress(user_id, days=30)
-        monthly_progress = await self._calculate_progress(user_id, days=90)
-        
-        return {
-            "overall_accuracy": analytics.overall_accuracy,
-            "total_quizzes_attempted": analytics.total_quizzes_attempted,
-            "total_questions_attempted": analytics.total_questions_attempted,
-            "average_score": sum(a.percentage for a in recent_attempts) / len(recent_attempts) if recent_attempts else 0,
-            "completion_rate": await self._calculate_completion_rate(user_id),
-            "daily_progress": daily_progress,
-            "weekly_progress": weekly_progress,
-            "monthly_progress": monthly_progress,
-            "topic_performance": analytics.topic_performance or {},
-            "difficulty_performance": analytics.difficulty_performance or {},
-            "recent_quizzes": [
-                {
-                    "quiz_id": a.quiz_id,
-                    "percentage": a.percentage,
-                    "completed_at": a.completed_at,
-                    "time_taken": a.time_taken
-                }
-                for a in recent_attempts
-            ],
-            "weak_areas": analytics.weak_areas or [],
-            "strong_areas": analytics.strong_areas or []
-        }
+        try:
+            logger.info(f"Getting dashboard data for user {user_id}")
+            analytics = await self.get_user_analytics(user_id)
+            
+            # Get recent attempts
+            recent_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 10)
+            logger.info(f"Found {len(recent_attempts)} recent attempts for user {user_id}")
+            
+            # Calculate progress data with error handling
+            try:
+                daily_progress = await self._calculate_progress(user_id, days=7)
+            except Exception as e:
+                logger.warning(f"Error calculating daily progress: {str(e)}")
+                daily_progress = []
+                
+            try:
+                weekly_progress = await self._calculate_progress(user_id, days=30)
+            except Exception as e:
+                logger.warning(f"Error calculating weekly progress: {str(e)}")
+                weekly_progress = []
+                
+            try:
+                monthly_progress = await self._calculate_progress(user_id, days=90)
+            except Exception as e:
+                logger.warning(f"Error calculating monthly progress: {str(e)}")
+                monthly_progress = []
+            
+            try:
+                completion_rate = await self._calculate_completion_rate(user_id)
+            except Exception as e:
+                logger.warning(f"Error calculating completion rate: {str(e)}")
+                completion_rate = 0.0
+            
+            # Calculate average score safely
+            average_score = 0.0
+            if recent_attempts:
+                try:
+                    average_score = sum(a.percentage for a in recent_attempts) / len(recent_attempts)
+                except Exception as e:
+                    logger.warning(f"Error calculating average score: {str(e)}")
+            
+            return {
+                "overall_accuracy": analytics.overall_accuracy if analytics else 0.0,
+                "total_quizzes_attempted": analytics.total_quizzes_attempted if analytics else 0,
+                "total_questions_attempted": analytics.total_questions_attempted if analytics else 0,
+                "average_score": average_score,
+                "completion_rate": completion_rate,
+                "daily_progress": daily_progress,
+                "weekly_progress": weekly_progress,
+                "monthly_progress": monthly_progress,
+                "topic_performance": analytics.topic_performance if analytics else {},
+                "difficulty_performance": analytics.difficulty_performance if analytics else {},
+                "recent_quizzes": [
+                    {
+                        "quiz_id": str(a.quiz_id),
+                        "percentage": a.percentage,
+                        "completed_at": a.completed_at,
+                        "time_taken": a.time_taken
+                    }
+                    for a in recent_attempts
+                ],
+                "weak_areas": analytics.weak_areas if analytics else [],
+                "strong_areas": analytics.strong_areas if analytics else []
+            }
+        except Exception as e:
+            logger.error(f"Error getting dashboard data for user {user_id}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Return empty dashboard for new users or on error
+            return {
+                "overall_accuracy": 0.0,
+                "total_quizzes_attempted": 0,
+                "total_questions_attempted": 0,
+                "average_score": 0.0,
+                "completion_rate": 0.0,
+                "daily_progress": [],
+                "weekly_progress": [],
+                "monthly_progress": [],
+                "topic_performance": {},
+                "difficulty_performance": {},
+                "recent_quizzes": [],
+                "weak_areas": [],
+                "strong_areas": []
+            }
     
-    async def _calculate_progress(self, user_id: int, days: int) -> List[Dict[str, Any]]:
+    async def _calculate_progress(self, user_id: str, days: int) -> List[Dict[str, Any]]:
         """Calculate progress over specified days."""
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
@@ -337,17 +388,21 @@ class AnalyticsService:
         
         return progress
     
-    async def _calculate_completion_rate(self, user_id: int) -> float:
+    async def _calculate_completion_rate(self, user_id: str) -> float:
         """Calculate quiz completion rate."""
-        total_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id)
-        completed_attempts = [a for a in total_attempts if a.status == AttemptStatus.COMPLETED]
-        
-        if not total_attempts:
+        try:
+            total_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id)
+            completed_attempts = [a for a in total_attempts if a.status == AttemptStatus.COMPLETED]
+            
+            if not total_attempts:
+                return 0.0
+            
+            return (len(completed_attempts) / len(total_attempts)) * 100
+        except Exception as e:
+            logger.warning(f"Error calculating completion rate for user {user_id}: {str(e)}")
             return 0.0
-        
-        return (len(completed_attempts) / len(total_attempts)) * 100
     
-    async def get_performance_analysis(self, user_id: int) -> Dict[str, Any]:
+    async def get_performance_analysis(self, user_id: str) -> Dict[str, Any]:
         """Get detailed performance analysis."""
         analytics = await self.get_user_analytics(user_id)
         
@@ -403,7 +458,7 @@ class AnalyticsService:
         
         return recent_avg - older_avg
     
-    async def _calculate_retention_rate(self, user_id: int) -> float:
+    async def _calculate_retention_rate(self, user_id: str) -> float:
         """Calculate retention rate (simplified)."""
         # This would normally track performance on repeated topics
         # For now, return a placeholder

@@ -5,14 +5,23 @@ from loguru import logger
 from app.ai.gemini import GeminiClient
 from app.ai.prompt_engine import PromptEngine
 from app.database.mongodb_models import QuestionType, Difficulty, BloomTaxonomy
+from app.seeds.questions_data import get_questions_for_topic, get_available_topics
 
 
 class QuestionGenerator:
-    """Generate questions using AI."""
+    """Generate questions using AI with fallback to local question bank."""
     
     def __init__(self):
         """Initialize question generator."""
-        self.gemini_client = GeminiClient()
+        try:
+            self.gemini_client = GeminiClient()
+            self.use_gemini = self.gemini_client.is_available()
+            logger.info(f"Gemini client available: {self.use_gemini}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Gemini client: {str(e)}")
+            self.gemini_client = None
+            self.use_gemini = False
+            
         self.prompt_engine = PromptEngine()
     
     def generate_questions(
@@ -24,36 +33,69 @@ class QuestionGenerator:
         topic: Optional[str] = None,
         additional_instructions: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Generate questions based on context."""
+        """Generate questions based on context with fallback to local questions."""
         logger.info(f"Generating {count} {difficulty} {question_type} questions")
         
         start_time = time.time()
         
-        try:
-            # Build prompt
-            prompt = self.prompt_engine.build_question_generation_prompt(
-                context=context,
-                question_type=question_type,
-                difficulty=difficulty,
-                count=count,
-                topic=topic,
-                additional_instructions=additional_instructions
-            )
-            
-            # Generate response
-            response = self.gemini_client.generate_text(prompt)
-            
-            # Parse response
-            questions = self._parse_questions_response(response, question_type)
-            
-            processing_time = time.time() - start_time
-            logger.info(f"Generated {len(questions)} questions in {processing_time:.2f}s")
-            
-            return questions
-            
-        except Exception as e:
-            logger.error(f"Question generation failed: {str(e)}")
-            raise
+        # Try Gemini first if available
+        if self.use_gemini and self.gemini_client:
+            try:
+                # Build prompt
+                prompt = self.prompt_engine.build_question_generation_prompt(
+                    context=context,
+                    question_type=question_type,
+                    difficulty=difficulty,
+                    count=count,
+                    topic=topic,
+                    additional_instructions=additional_instructions
+                )
+                
+                # Generate response
+                response = self.gemini_client.generate_text(prompt)
+                
+                # Parse response
+                questions = self._parse_questions_response(response, question_type)
+                
+                processing_time = time.time() - start_time
+                logger.info(f"Generated {len(questions)} questions via Gemini in {processing_time:.2f}s")
+                
+                if questions:  # If we got questions successfully, return them
+                    return questions
+            except Exception as e:
+                logger.warning(f"Gemini question generation failed: {str(e)}, falling back to local questions")
+        
+        # Fallback to local question bank
+        logger.info(f"Using local question bank for topic: {topic or 'general'}")
+        fallback_topic = topic if topic in get_available_topics() else "General Knowledge"
+        local_questions = get_questions_for_topic(fallback_topic, count)
+        
+        # Convert local questions to expected format
+        formatted_questions = []
+        for i, q in enumerate(local_questions):
+            formatted_questions.append({
+                'question_text': q['question_text'],
+                'question_type': q['question_type'],
+                'options': q.get('options'),
+                'correct_answer': q['correct_answer'],
+                'explanation': q.get('explanation'),
+                'difficulty': q.get('difficulty', 'medium'),
+                'topic': topic or fallback_topic,
+                'subtopic': q.get('subtopic'),
+                'bloom_taxonomy_level': None,
+                'estimated_time': 60,
+                'marks': 1.0,
+                'hint': None,
+                'tags': [],
+                'confidence_score': 1.0,
+                'is_validated': True,
+                'validation_errors': None
+            })
+        
+        processing_time = time.time() - start_time
+        logger.info(f"Generated {len(formatted_questions)} questions from local bank in {processing_time:.2f}s")
+        
+        return formatted_questions
     
     def _parse_questions_response(
         self,

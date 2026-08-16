@@ -9,11 +9,11 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
     def __init__(self):
         super().__init__(AnalyticsModel)
     
-    async def get_by_user_id(self, user_id: int) -> Optional[AnalyticsModel]:
+    async def get_by_user_id(self, user_id: str) -> Optional[AnalyticsModel]:
         """Get analytics by user ID."""
         return await self.model.find_one(self.model.user_id == user_id)
     
-    async def create_or_update(self, user_id: int, analytics_data: Dict[str, Any]) -> AnalyticsModel:
+    async def create_or_update(self, user_id: str, analytics_data: Dict[str, Any]) -> AnalyticsModel:
         """Create or update analytics for user."""
         analytics = await self.get_by_user_id(user_id)
         
@@ -23,7 +23,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             analytics_data['user_id'] = user_id
             return await self.create(analytics_data)
     
-    async def update_topic_performance(self, user_id: int, topic_performance: Dict[str, Any]) -> Optional[AnalyticsModel]:
+    async def update_topic_performance(self, user_id: str, topic_performance: Dict[str, Any]) -> Optional[AnalyticsModel]:
         """Update topic performance for user."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -31,7 +31,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def update_difficulty_performance(self, user_id: int, difficulty_performance: Dict[str, Any]) -> Optional[AnalyticsModel]:
+    async def update_difficulty_performance(self, user_id: str, difficulty_performance: Dict[str, Any]) -> Optional[AnalyticsModel]:
         """Update difficulty performance for user."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -39,7 +39,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def update_learning_curve(self, user_id: int, learning_curve: List[Dict[str, Any]]) -> Optional[AnalyticsModel]:
+    async def update_learning_curve(self, user_id: str, learning_curve: List[Dict[str, Any]]) -> Optional[AnalyticsModel]:
         """Update learning curve for user."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -47,7 +47,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def update_weak_areas(self, user_id: int, weak_areas: List[str]) -> Optional[AnalyticsModel]:
+    async def update_weak_areas(self, user_id: str, weak_areas: List[str]) -> Optional[AnalyticsModel]:
         """Update weak areas for user."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -55,7 +55,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def update_strong_areas(self, user_id: int, strong_areas: List[str]) -> Optional[AnalyticsModel]:
+    async def update_strong_areas(self, user_id: str, strong_areas: List[str]) -> Optional[AnalyticsModel]:
         """Update strong areas for user."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -63,7 +63,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def increment_quiz_attempted(self, user_id: int) -> Optional[AnalyticsModel]:
+    async def increment_quiz_attempted(self, user_id: str) -> Optional[AnalyticsModel]:
         """Increment total quizzes attempted."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -71,7 +71,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def increment_questions_attempted(self, user_id: int, count: int = 1) -> Optional[AnalyticsModel]:
+    async def increment_questions_attempted(self, user_id: str, count: int = 1) -> Optional[AnalyticsModel]:
         """Increment total questions attempted."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -79,7 +79,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def increment_correct_answers(self, user_id: int, count: int = 1) -> Optional[AnalyticsModel]:
+    async def increment_correct_answers(self, user_id: str, count: int = 1) -> Optional[AnalyticsModel]:
         """Increment correct answers count."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -88,7 +88,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             await analytics.save()
         return analytics
     
-    async def increment_wrong_answers(self, user_id: int, count: int = 1) -> Optional[AnalyticsModel]:
+    async def increment_wrong_answers(self, user_id: str, count: int = 1) -> Optional[AnalyticsModel]:
         """Increment wrong answers count."""
         analytics = await self.get_by_user_id(user_id)
         if analytics:
@@ -118,7 +118,7 @@ class AnalyticsRepository(BaseRepository[AnalyticsModel]):
             user = await UserModel.find_one(UserModel.id == analytics.user_id)
             if user:
                 result.append({
-                    "user_id": analytics.user_id,
+                    "user_id": str(analytics.user_id),
                     "username": user.username,
                     "email": user.email,
                     "overall_accuracy": analytics.overall_accuracy,

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # MongoDB (Primary Database)
-    MONGODB_URL: str = Field(default="mongodb+srv://vaishnavimoreddy73_db_user:dM3udT7r5Gtfb4uV@primarycluster.gumoqac.mongodb.net", description="MongoDB connection URL")
+    MONGODB_URL: str = Field(default="", description="MongoDB connection URL")
     MONGODB_DATABASE: str = "quiz_generator"
     
     # JWT

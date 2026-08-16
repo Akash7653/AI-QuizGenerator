@@ -13,7 +13,7 @@ async def get_dashboard(
 ):
     """Get comprehensive dashboard analytics."""
     analytics_service = AnalyticsService()
-    return await analytics_service.get_dashboard_data(current_user.id)
+    return await analytics_service.get_dashboard_data(str(current_user.id))
 
 
 @router.get("/performance", response_model=PerformanceAnalysis)
@@ -22,7 +22,7 @@ async def get_performance_analysis(
 ):
     """Get detailed performance analysis."""
     analytics_service = AnalyticsService()
-    return await analytics_service.get_performance_analysis(current_user.id)
+    return await analytics_service.get_performance_analysis(str(current_user.id))
 
 
 @router.get("/topics")
@@ -31,7 +31,7 @@ async def get_topic_performance(
 ):
     """Get topic-wise performance data."""
     analytics_service = AnalyticsService()
-    analytics = await analytics_service.get_user_analytics(current_user.id)
+    analytics = await analytics_service.get_user_analytics(str(current_user.id))
     return analytics.topic_performance or {}
 
 
@@ -41,7 +41,7 @@ async def get_difficulty_performance(
 ):
     """Get difficulty-wise performance data."""
     analytics_service = AnalyticsService()
-    analytics = await analytics_service.get_user_analytics(current_user.id)
+    analytics = await analytics_service.get_user_analytics(str(current_user.id))
     return analytics.difficulty_performance or {}
 
 
@@ -51,7 +51,7 @@ async def get_learning_curve(
 ):
     """Get learning curve data."""
     analytics_service = AnalyticsService()
-    analytics = await analytics_service.get_user_analytics(current_user.id)
+    analytics = await analytics_service.get_user_analytics(str(current_user.id))
     return analytics.learning_curve or []
 
 
@@ -61,7 +61,7 @@ async def get_analytics_stats(
 ):
     """Get basic analytics statistics."""
     analytics_service = AnalyticsService()
-    analytics = await analytics_service.get_user_analytics(current_user.id)
+    analytics = await analytics_service.get_user_analytics(str(current_user.id))
 
     return {
         "overall_accuracy": analytics.overall_accuracy,

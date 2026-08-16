@@ -40,8 +40,15 @@ async def generate_topic_quiz(
             "Include 6-8 core concepts, a few important definitions, and application examples. "
             "Keep it brief but educational so it can support quiz generation."
         )
-        context = generator.gemini_client.generate_text(prompt_context, max_tokens=1200)
-
+        
+        # Try to generate content with Gemini, with fallback
+        try:
+            context = generator.gemini_client.generate_text(prompt_context, max_tokens=1200)
+        except Exception as gemini_error:
+            print(f"[Quiz] Gemini generation failed: {str(gemini_error)}")
+            # Fallback to basic context
+            context = f"Topic: {topic}. This is a general educational topic covering key concepts, definitions, and applications."
+        
         difficulty = request.difficulty.lower().replace(' ', '')
         difficulty = 'medium' if difficulty not in {'beginner', 'easy', 'medium', 'hard'} else difficulty
         question_type = request.question_type.lower()
@@ -85,6 +92,8 @@ async def generate_topic_quiz(
             'questions': normalized_questions,
         }
     except Exception as exc:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate a quiz for '{topic}': {str(exc)}"
@@ -102,7 +111,7 @@ async def generate_quiz(
     try:
         quiz = await quiz_service.generate_ai_quiz(
             document_id=request.document_id,
-            user_id=current_user.id,
+            user_id=str(current_user.id),
             mode=request.mode,
             total_questions=request.total_questions,
             difficulty=request.difficulty or "medium",
@@ -115,6 +124,8 @@ async def generate_quiz(
             detail=str(e)
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Quiz generation failed: {str(e)}"
@@ -130,7 +141,7 @@ async def create_quiz(
     quiz_service = QuizService()
 
     try:
-        quiz = await quiz_service.create_quiz(quiz_data, current_user.id)
+        quiz = await quiz_service.create_quiz(quiz_data, str(current_user.id))
         return quiz
     except ValueError as e:
         raise HTTPException(
@@ -148,7 +159,7 @@ async def start_quiz(
     quiz_service = QuizService()
 
     try:
-        attempt = await quiz_service.start_quiz(request.quiz_id, current_user.id)
+        attempt = await quiz_service.start_quiz(str(request.quiz_id), str(current_user.id))
         return attempt
     except ValueError as e:
         raise HTTPException(
@@ -166,7 +177,7 @@ async def pause_quiz(
     quiz_service = QuizService()
 
     try:
-        attempt = await quiz_service.pause_quiz(attempt_id, current_user.id)
+        attempt = await quiz_service.pause_quiz(str(attempt_id), str(current_user.id))
         return attempt
     except ValueError as e:
         raise HTTPException(
@@ -184,7 +195,7 @@ async def resume_quiz(
     quiz_service = QuizService()
 
     try:
-        attempt = await quiz_service.resume_quiz(attempt_id, current_user.id)
+        attempt = await quiz_service.resume_quiz(str(attempt_id), str(current_user.id))
         return attempt
     except ValueError as e:
         raise HTTPException(
@@ -203,9 +214,9 @@ async def submit_quiz(
 
     try:
         attempt = await quiz_service.submit_quiz(
-            request.attempt_id,
+            str(request.attempt_id),
             request.answers,
-            current_user.id
+            str(current_user.id)
         )
         return attempt
     except ValueError as e:
@@ -224,7 +235,7 @@ async def get_quiz_result(
     quiz_service = QuizService()
 
     try:
-        result = await quiz_service.get_quiz_result(attempt_id, current_user.id)
+        result = await quiz_service.get_quiz_result(str(attempt_id), str(current_user.id))
         return result
     except ValueError as e:
         raise HTTPException(
@@ -248,7 +259,7 @@ async def quick_save_quiz(
 
         # Create a temporary quiz if it doesn't exist
         quiz_data = {
-            "user_id": current_user.id,
+            "user_id": str(current_user.id),
             "title": f"Quiz - {request.topic}",
             "mode": "practice",
             "total_questions": request.total_questions,
@@ -260,8 +271,8 @@ async def quick_save_quiz(
         # Create attempt
         from datetime import datetime
         attempt_data = {
-            "user_id": current_user.id,
-            "quiz_id": quiz.id,
+            "user_id": str(current_user.id),
+            "quiz_id": str(quiz.id),
             "status": "completed",
             "started_at": int(datetime.now().timestamp()) - request.time_taken,
             "completed_at": int(datetime.now().timestamp()),
@@ -291,6 +302,8 @@ async def quick_save_quiz(
             "completed_at": attempt.completed_at
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save quiz: {str(e)}"
@@ -305,7 +318,7 @@ async def get_quizzes(
 ):
     """Get all quizzes for current user."""
     quiz_service = QuizService()
-    return await quiz_service.get_user_quizzes(current_user.id, skip, limit)
+    return await quiz_service.get_user_quizzes(str(current_user.id), skip, limit)
 
 
 @router.get("/history", response_model=List[dict])
@@ -316,7 +329,7 @@ async def get_quiz_history(
 ):
     """Get quiz attempt history for current user with quiz details."""
     quiz_service = QuizService()
-    return await quiz_service.get_user_attempts_with_quiz_details(current_user.id, skip, limit)
+    return await quiz_service.get_user_attempts_with_quiz_details(str(current_user.id), skip, limit)
 
 
 @router.get("/{quiz_id}", response_model=QuizResponse)
@@ -335,7 +348,7 @@ async def get_quiz(
             detail="Quiz not found"
         )
 
-    if quiz.user_id != current_user.id:
+    if str(quiz.user_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -361,7 +374,7 @@ async def update_quiz(
             detail="Quiz not found"
         )
 
-    if quiz.user_id != current_user.id:
+    if str(quiz.user_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
@@ -381,7 +394,7 @@ async def delete_quiz(
     quiz_service = QuizService()
 
     try:
-        success = await quiz_service.delete_quiz(quiz_id, current_user.id)
+        success = await quiz_service.delete_quiz(str(quiz_id), str(current_user.id))
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

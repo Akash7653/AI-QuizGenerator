@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any, List
 from loguru import logger
-from app.config.settings import settings
+from app.config.settings import settings, get_gemini_api_key
 
 try:
     import google.generativeai as genai
@@ -16,12 +16,21 @@ class GeminiClient:
         if genai is None:
             raise RuntimeError("Google Gemini SDK is not installed. Install requirements-ai.txt or the google-generativeai package.")
         try:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
+            api_key = get_gemini_api_key()
+            if not api_key:
+                logger.warning("No valid Gemini API key found - Gemini features will be disabled")
+                self.model = None
+                self.is_available = False
+                return
+                
+            genai.configure(api_key=api_key)
             self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
             logger.info(f"Initialized Gemini model: {settings.GEMINI_MODEL}")
+            self.is_available = True
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {str(e)}")
-            raise
+            self.model = None
+            self.is_available = False
     
     def generate_text(
         self,
@@ -30,6 +39,9 @@ class GeminiClient:
         max_tokens: Optional[int] = None
     ) -> str:
         """Generate text using Gemini API."""
+        if not self.is_available or not self.model:
+            raise RuntimeError("Gemini API is not available. Check your API key configuration.")
+            
         try:
             generation_config = genai.types.GenerationConfig(
                 temperature=temperature or settings.GEMINI_TEMPERATURE,
@@ -106,11 +118,7 @@ class GeminiClient:
     
     def is_available(self) -> bool:
         """Check if Gemini API is available."""
-        try:
-            response = self.generate_text("Hello", max_tokens=5)
-            return bool(response)
-        except Exception:
-            return False
+        return self.is_available and self.model is not None
 
 
 class GeminiPromptBuilder:

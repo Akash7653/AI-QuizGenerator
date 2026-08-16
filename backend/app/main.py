@@ -11,6 +11,8 @@ from app.api.analytics.router import router as analytics_router
 from app.api.recommendation.router import router as recommendation_router
 from app.api.admin.router import router as admin_router
 from app.api.chatbot.router import router as chatbot_router
+from app.api.topics.router import router as topics_router
+from app.api.fallback.router import router as fallback_router
 from loguru import logger
 
 # Setup logging
@@ -41,26 +43,28 @@ app.include_router(analytics_router, prefix=settings.API_V1_PREFIX)
 app.include_router(recommendation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
 app.include_router(chatbot_router, prefix=settings.API_V1_PREFIX)
+app.include_router(topics_router, prefix=settings.API_V1_PREFIX)
+app.include_router(fallback_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and other services on startup."""
     import sys
-    logger.info("🚀 Starting AI Quiz Generator Backend...")
-    logger.info(f"📦 Python version: {sys.version}")
-    logger.info(f"🔧 Environment: {settings.ENVIRONMENT}")
+    logger.info("Starting AI Quiz Generator Backend...")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Environment: {settings.ENVIRONMENT}")
     
     # Initialize MongoDB
     try:
         from app.database.mongodb_connection import init_mongodb
         await init_mongodb()
-        logger.info("✅ MongoDB initialized successfully")
+        logger.info("MongoDB initialized successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to initialize MongoDB: {str(e)}")
-        logger.warning("⚠️  Application will continue but MongoDB features may be limited")
+        logger.error(f"Failed to initialize MongoDB: {str(e)}")
+        logger.warning("Application will continue but MongoDB features may be limited")
     
-    logger.info("✅ AI Quiz Generator Backend started successfully")
+    logger.info("AI Quiz Generator Backend started successfully")
 
 
 @app.on_event("shutdown")
@@ -131,7 +135,8 @@ async def api_root():
             "quiz": f"{settings.API_V1_PREFIX}/quiz",
             "analytics": f"{settings.API_V1_PREFIX}/analytics",
             "recommendations": f"{settings.API_V1_PREFIX}/recommendation",
-            "admin": f"{settings.API_V1_PREFIX}/admin"
+            "admin": f"{settings.API_V1_PREFIX}/admin",
+            "topics": f"{settings.API_V1_PREFIX}/topics"
         }
     }
 

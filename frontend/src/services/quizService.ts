@@ -6,6 +6,7 @@ import type {
   InputSource,
 } from '@/types';
 import { sampleQuestions } from '@/data/mockData';
+import { api } from './api';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -122,30 +123,71 @@ export const quizService = {
     topic: string,
     config: QuizConfig,
   ): Promise<Quiz> {
-    // Simulate AI generation stages handled in the UI
-    await delay(100);
-    const numQ = Math.min(config.numQuestions, sampleQuestions.length);
-    const questions: Question[] = sampleQuestions.slice(0, numQ);
+    try {
+      // Try backend API first
+      const response = await api.post('/quiz/generate-topic', {
+        topic: topic || 'General',
+        difficulty: config.difficulty,
+        total_questions: config.numQuestions,
+        question_type: config.questionType === 'mixed' ? 'Mixed' : config.questionType,
+        time_limit: config.timeLimit,
+        source_type: source,
+      });
 
-    const quiz: Quiz = {
-      id: `quiz_${Date.now()}`,
-      title: topic
-        ? `${topic} Quiz`
-        : `${sourceLabel.substring(0, 40)} Quiz`,
-      topic: topic || 'General',
-      difficulty: config.difficulty,
-      mode: 'practice',
-      source,
-      sourceLabel,
-      questions,
-      config,
-      createdAt: new Date().toISOString(),
-    };
+      const questions: Question[] = response.data.questions.map((q: any, i: number) => ({
+        id: q.id || `q_${i}`,
+        text: q.question,
+        type: q.type || 'mcq',
+        options: q.options || [],
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      }));
 
-    const quizzes = loadQuizzes();
-    quizzes.unshift(quiz);
-    saveQuizzes(quizzes);
-    return quiz;
+      const quiz: Quiz = {
+        id: `quiz_${Date.now()}`,
+        title: topic ? `${topic} Quiz` : `${sourceLabel.substring(0, 40)} Quiz`,
+        topic: topic || 'General',
+        difficulty: config.difficulty,
+        mode: 'practice',
+        source,
+        sourceLabel,
+        questions,
+        config,
+        createdAt: new Date().toISOString(),
+      };
+
+      const quizzes = loadQuizzes();
+      quizzes.unshift(quiz);
+      saveQuizzes(quizzes);
+      return quiz;
+    } catch (error) {
+      console.error('Backend quiz generation failed, using fallback:', error);
+      
+      // Fallback to local generation
+      await delay(100);
+      const numQ = Math.min(config.numQuestions, sampleQuestions.length);
+      const questions: Question[] = sampleQuestions.slice(0, numQ);
+
+      const quiz: Quiz = {
+        id: `quiz_${Date.now()}`,
+        title: topic
+          ? `${topic} Quiz`
+          : `${sourceLabel.substring(0, 40)} Quiz`,
+        topic: topic || 'General',
+        difficulty: config.difficulty,
+        mode: 'practice',
+        source,
+        sourceLabel,
+        questions,
+        config,
+        createdAt: new Date().toISOString(),
+      };
+
+      const quizzes = loadQuizzes();
+      quizzes.unshift(quiz);
+      saveQuizzes(quizzes);
+      return quiz;
+    }
   },
 
   async getQuiz(id: string): Promise<Quiz | null> {

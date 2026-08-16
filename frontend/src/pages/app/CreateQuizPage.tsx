@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { quizService } from '@/services/quizService';
+import { api } from '@/services/api';
 import type { InputSource, QuizConfig, Difficulty, QuestionType } from '@/types';
 
 const inputTabs: { id: InputSource; label: string; icon: typeof FileText; desc: string }[] = [
@@ -44,7 +45,8 @@ export function CreateQuizPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [genStage, setGenStage] = useState(0);
-  const suggestedTopics = ['Data Structures', 'Python', 'Machine Learning', 'JavaScript', 'World History', 'Biology'];
+  const [suggestedTopics, setSuggestedTopics] = useState<string[]>(['Data Structures', 'Python', 'Machine Learning', 'JavaScript', 'World History', 'Biology']);
+  const [loadingTopics, setLoadingTopics] = useState(false);
 
   const [config, setConfig] = useState<QuizConfig>({
     numQuestions: 10,
@@ -119,6 +121,24 @@ export function CreateQuizPage() {
     }
     sessionStorage.removeItem('quizgen_generating');
   }, [generating]);
+
+  // Load topics from backend
+  useEffect(() => {
+    const loadTopics = async () => {
+      setLoadingTopics(true);
+      try {
+        const response = await api.get('/topics/flat');
+        const topics = response.data.slice(0, 12).map((t: any) => t.name);
+        setSuggestedTopics(topics);
+      } catch (error) {
+        console.error('Failed to load topics from backend:', error);
+        // Keep default topics if backend fails
+      } finally {
+        setLoadingTopics(false);
+      }
+    };
+    loadTopics();
+  }, []);
 
   const handleGenerate = async () => {
     if (!canGenerate()) {
@@ -372,20 +392,24 @@ export function CreateQuizPage() {
                     />
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {suggestedTopics.map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => setTopic(suggestion)}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                            topic === suggestion
-                              ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-900/30 dark:text-brand-300'
-                              : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600 dark:border-ink-700 dark:text-ink-300 dark:hover:border-brand-400 dark:hover:text-brand-300'
-                          }`}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
+                      {loadingTopics ? (
+                        <div className="text-xs text-ink-500">Loading topics...</div>
+                      ) : (
+                        suggestedTopics.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => setTopic(suggestion)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                              topic === suggestion
+                                ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-900/30 dark:text-brand-300'
+                                : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600 dark:border-ink-700 dark:text-ink-300 dark:hover:border-brand-400 dark:hover:text-brand-300'
+                            }`}
+                          >
+                            {suggestion}
+                          </button>
+                        ))
+                      )}
                     </div>
 
                     <p className="text-xs text-ink-500 mt-2">Our AI will generate questions based on this topic.</p>

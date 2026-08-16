@@ -9,7 +9,7 @@ class QuizRepository(BaseRepository[QuizModel]):
     def __init__(self):
         super().__init__(QuizModel)
     
-    async def get_by_user_id(self, user_id: int, skip: int = 0, limit: int = 100) -> List[QuizModel]:
+    async def get_by_user_id(self, user_id: str, skip: int = 0, limit: int = 100) -> List[QuizModel]:
         """Get quizzes by user ID."""
         return await self.model.find(self.model.user_id == user_id).skip(skip).limit(limit).to_list()
     
@@ -17,15 +17,15 @@ class QuizRepository(BaseRepository[QuizModel]):
         """Get quizzes by mode."""
         return await self.model.find(self.model.mode == mode).skip(skip).limit(limit).to_list()
     
-    async def get_by_document_id(self, document_id: int, skip: int = 0, limit: int = 100) -> List[QuizModel]:
+    async def get_by_document_id(self, document_id: str, skip: int = 0, limit: int = 100) -> List[QuizModel]:
         """Get quizzes by document ID."""
         return await self.model.find(self.model.document_id == document_id).skip(skip).limit(limit).to_list()
     
-    async def get_by_topic_id(self, topic_id: int, skip: int = 0, limit: int = 100) -> List[QuizModel]:
+    async def get_by_topic_id(self, topic_id: str, skip: int = 0, limit: int = 100) -> List[QuizModel]:
         """Get quizzes by topic ID."""
         return await self.model.find(self.model.topic_id == topic_id).skip(skip).limit(limit).to_list()
     
-    async def add_questions_to_quiz(self, quiz_id: int, question_ids: List[int]) -> Optional[QuizModel]:
+    async def add_questions_to_quiz(self, quiz_id: str, question_ids: List[str]) -> Optional[QuizModel]:
         """Add questions to quiz."""
         quiz = await self.get_by_id(quiz_id)
         if quiz:
@@ -34,14 +34,14 @@ class QuizRepository(BaseRepository[QuizModel]):
             await quiz.save()
         return quiz
     
-    async def get_quiz_questions(self, quiz_id: int) -> List[int]:
+    async def get_quiz_questions(self, quiz_id: str) -> List[str]:
         """Get all question IDs in a quiz."""
         quiz = await self.get_by_id(quiz_id)
         if quiz:
             return quiz.question_ids
         return []
     
-    async def remove_question_from_quiz(self, quiz_id: int, question_id: int) -> bool:
+    async def remove_question_from_quiz(self, quiz_id: str, question_id: str) -> bool:
         """Remove question from quiz."""
         quiz = await self.get_by_id(quiz_id)
         if quiz and question_id in quiz.question_ids:
@@ -80,15 +80,15 @@ class QuizAttemptRepository(BaseRepository[QuizAttemptModel]):
     def __init__(self):
         super().__init__(QuizAttemptModel)
     
-    async def get_by_user_id(self, user_id: int, skip: int = 0, limit: int = 100) -> List[QuizAttemptModel]:
+    async def get_by_user_id(self, user_id: str, skip: int = 0, limit: int = 100) -> List[QuizAttemptModel]:
         """Get quiz attempts by user ID."""
         return await self.model.find(self.model.user_id == user_id).sort(-self.model.created_at).skip(skip).limit(limit).to_list()
     
-    async def get_by_quiz_id(self, quiz_id: int, skip: int = 0, limit: int = 100) -> List[QuizAttemptModel]:
+    async def get_by_quiz_id(self, quiz_id: str, skip: int = 0, limit: int = 100) -> List[QuizAttemptModel]:
         """Get quiz attempts by quiz ID."""
         return await self.model.find(self.model.quiz_id == quiz_id).sort(-self.model.created_at).skip(skip).limit(limit).to_list()
     
-    async def get_by_user_and_quiz(self, user_id: int, quiz_id: int) -> List[QuizAttemptModel]:
+    async def get_by_user_and_quiz(self, user_id: str, quiz_id: str) -> List[QuizAttemptModel]:
         """Get quiz attempts by user and quiz."""
         return await self.model.find({
             "user_id": user_id,
@@ -99,16 +99,16 @@ class QuizAttemptRepository(BaseRepository[QuizAttemptModel]):
         """Get quiz attempts by status."""
         return await self.model.find(self.model.status == status).skip(skip).limit(limit).to_list()
     
-    async def get_in_progress_attempts(self, user_id: int) -> List[QuizAttemptModel]:
+    async def get_in_progress_attempts(self, user_id: str) -> List[QuizAttemptModel]:
         """Get in-progress attempts for a user."""
         return await self.model.find({
-            "user_id": user_id,
+            "user_id": str(user_id),
             "status": AttemptStatus.IN_PROGRESS
         }).to_list()
     
     async def update_attempt_progress(
         self,
-        attempt_id: int,
+        attempt_id: str,
         current_question_index: int,
         answers: Dict[str, Any],
         time_taken: int
@@ -124,7 +124,7 @@ class QuizAttemptRepository(BaseRepository[QuizAttemptModel]):
     
     async def complete_attempt(
         self,
-        attempt_id: int,
+        attempt_id: str,
         total_score: float,
         max_score: float,
         percentage: float,
@@ -147,18 +147,18 @@ class QuizAttemptRepository(BaseRepository[QuizAttemptModel]):
             await attempt.save()
         return attempt
     
-    async def get_user_attempt_stats(self, user_id: int) -> Dict[str, Any]:
+    async def get_user_attempt_stats(self, user_id: str) -> Dict[str, Any]:
         """Get attempt statistics for a user."""
-        total_attempts = await self.model.find(self.model.user_id == user_id).count()
+        total_attempts = await self.model.find(self.model.user_id == str(user_id)).count()
         
         completed_attempts = await self.model.find({
-            "user_id": user_id,
+            "user_id": str(user_id),
             "status": AttemptStatus.COMPLETED
         }).count()
         
         # Calculate average score
         completed_attempts_list = await self.model.find({
-            "user_id": user_id,
+            "user_id": str(user_id),
             "status": AttemptStatus.COMPLETED
         }).to_list()
         

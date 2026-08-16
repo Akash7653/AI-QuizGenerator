@@ -18,6 +18,7 @@ class BaseRepository(Generic[T]):
             # Convert string ID to ObjectId if it's a valid ObjectId string
             if isinstance(id, str) and len(id) == 24:
                 try:
+                    from bson import ObjectId
                     id = ObjectId(id)
                 except:
                     pass  # Keep as string if not a valid ObjectId

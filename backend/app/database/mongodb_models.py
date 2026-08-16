@@ -30,7 +30,7 @@ class DocumentStatus(str, Enum):
 class DocumentModel(Document):
     """MongoDB model for document storage."""
     
-    user_id: int = Indexed()
+    user_id: str = Indexed()
     title: str = Indexed()
     description: Optional[str] = None
     document_type: DocumentType
@@ -238,9 +238,9 @@ class QuizMode(str, Enum):
 class QuizModel(Document):
     """MongoDB model for quiz configurations."""
     
-    user_id: int = Indexed()
-    document_id: Optional[int] = Indexed()
-    topic_id: Optional[int] = Indexed()
+    user_id: str = Indexed()
+    document_id: Optional[str] = Indexed()
+    topic_id: Optional[str] = Indexed()
     
     title: str
     description: Optional[str] = None
@@ -256,7 +256,7 @@ class QuizModel(Document):
     shuffle_options: bool = False
     auto_save: bool = True
     
-    question_ids: List[int] = Field(default_factory=list)  # List of question IDs
+    question_ids: List[str] = Field(default_factory=list)  # List of question IDs
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -285,8 +285,8 @@ class AttemptStatus(str, Enum):
 class QuizAttemptModel(Document):
     """MongoDB model for tracking user attempts."""
     
-    user_id: int = Indexed()
-    quiz_id: int = Indexed()
+    user_id: str = Indexed()
+    quiz_id: str = Indexed()
     
     status: AttemptStatus = AttemptStatus.IN_PROGRESS
     started_at: Optional[int] = None  # Unix timestamp
@@ -321,8 +321,8 @@ class QuizAttemptModel(Document):
 class AttemptAnswerModel(Document):
     """MongoDB model for individual answers in quiz attempts."""
     
-    attempt_id: int = Indexed()
-    question_id: int = Indexed()
+    attempt_id: str = Indexed()
+    question_id: str = Indexed()
     
     user_answer: Optional[str] = None
     is_correct: Optional[bool] = None
@@ -344,7 +344,7 @@ class AttemptAnswerModel(Document):
 class AnalyticsModel(Document):
     """MongoDB model for tracking user performance."""
     
-    user_id: int = Indexed(unique=True)
+    user_id: str = Indexed(unique=True)
     
     overall_accuracy: float = 0.0
     total_quizzes_attempted: int = 0
@@ -374,14 +374,14 @@ class AnalyticsModel(Document):
 class RecommendationModel(Document):
     """MongoDB model for personalized learning paths."""
     
-    user_id: int = Indexed()
+    user_id: str = Indexed()
     
     recommendation_type: str  # next_topic, next_quiz, revision, weak_topic
     title: str
     description: Optional[str] = None
     
-    topic_id: Optional[int] = None
-    quiz_id: Optional[int] = None
+    topic_id: Optional[str] = None
+    quiz_id: Optional[str] = None
     
     priority: int = 0
     difficulty: Optional[str] = None
@@ -417,7 +417,7 @@ class NotificationType(str, Enum):
 class NotificationModel(Document):
     """MongoDB model for user notifications."""
     
-    user_id: int = Indexed()
+    user_id: str = Indexed()
     
     notification_type: NotificationType
     title: str
@@ -443,7 +443,7 @@ class NotificationModel(Document):
 class UserActivityModel(Document):
     """MongoDB model for tracking user actions."""
     
-    user_id: int = Indexed()
+    user_id: str = Indexed()
     
     activity_type: str  # login, quiz_start, quiz_complete, etc.
     description: Optional[str] = None
