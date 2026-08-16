@@ -4,7 +4,7 @@ import time
 from loguru import logger
 from app.ai.gemini import GeminiClient
 from app.ai.prompt_engine import PromptEngine
-from app.database.models.question import QuestionType, Difficulty, BloomTaxonomy
+from app.database.mongodb_models import QuestionType, Difficulty, BloomTaxonomy
 
 
 class QuestionGenerator:

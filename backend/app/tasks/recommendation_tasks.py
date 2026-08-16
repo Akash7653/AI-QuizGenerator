@@ -1,9 +1,7 @@
 from celery import shared_task
 from loguru import logger
-from sqlalchemy.orm import Session
-from app.database.connection import SessionLocal
 from app.database.services.recommendation_service import RecommendationService
-from app.database.repository import UserRepository
+from app.database.repository.user_repository import UserRepository
 
 
 @shared_task
@@ -11,9 +9,8 @@ def generate_daily_recommendations(user_id: int = None):
     """Generate daily recommendations for user or all users."""
     logger.info(f"Generating daily recommendations for user {user_id or 'all users'}")
     
-    db = SessionLocal()
     try:
-        recommendation_service = RecommendationService(db)
+        recommendation_service = RecommendationService()
         
         if user_id:
             # Generate for specific user
@@ -25,7 +22,7 @@ def generate_daily_recommendations(user_id: int = None):
             }
         else:
             # Generate for all users
-            user_repo = UserRepository(db)
+            user_repo = UserRepository()
             users = user_repo.get_all(limit=1000)
             
             total_recommendations = 0
@@ -43,8 +40,6 @@ def generate_daily_recommendations(user_id: int = None):
     except Exception as e:
         logger.error(f"Recommendation generation failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()
 
 
 @shared_task
@@ -52,10 +47,9 @@ def update_learning_paths():
     """Update learning paths for all users."""
     logger.info("Updating learning paths for all users")
     
-    db = SessionLocal()
     try:
-        recommendation_service = RecommendationService(db)
-        user_repo = UserRepository(db)
+        recommendation_service = RecommendationService()
+        user_repo = UserRepository()
         
         users = user_repo.get_all(limit=1000)
         results = []
@@ -88,5 +82,3 @@ def update_learning_paths():
     except Exception as e:
         logger.error(f"Learning path update failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()

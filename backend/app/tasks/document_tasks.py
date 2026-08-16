@@ -1,13 +1,11 @@
 from celery import shared_task
 from loguru import logger
-from sqlalchemy.orm import Session
-from app.database.connection import SessionLocal
 from app.nlp.extractor import TextExtractor
 from app.nlp.cleaner import TextCleaner
 from app.nlp.chunker import TextChunker
 from app.nlp.embedding import EmbeddingManager
-from app.database.models.document import Document, DocumentStatus
-from app.database.repository import DocumentRepository
+from app.database.mongodb_models import DocumentModel, DocumentStatus
+from app.database.repository.document_repository import DocumentRepository
 
 
 @shared_task(bind=True, max_retries=3)
@@ -15,9 +13,8 @@ def process_document(self, document_id: int):
     """Process document asynchronously."""
     logger.info(f"Processing document {document_id}")
     
-    db = SessionLocal()
     try:
-        doc_repo = DocumentRepository(db)
+        doc_repo = DocumentRepository()
         document = doc_repo.get_by_id(document_id)
         
         if not document:
@@ -32,7 +29,7 @@ def process_document(self, document_id: int):
                     document.document_type.value
                 )
             except Exception as e:
-                logger.error(f"Text extraction failed: {str(e)}")
+                logger.error(f"Text extraction failed: {str(e)})
                 doc_repo.update_status(document_id, DocumentStatus.FAILED)
                 doc_repo.update_processing_error(document_id, str(e))
                 return {"status": "error", "message": str(e)}
@@ -56,7 +53,7 @@ def process_document(self, document_id: int):
         embedding_manager = EmbeddingManager()
         embeddings_data = embedding_manager.process_document_chunks(chunks, document_id)
         
-        # Store embeddings in database (simplified)
+        # Store embeddings in MongoDB (simplified)
         # In production, this would use the repository pattern
         
         # Update document
@@ -76,8 +73,6 @@ def process_document(self, document_id: int):
         doc_repo.update_status(document_id, DocumentStatus.FAILED)
         doc_repo.update_processing_error(document_id, str(e))
         raise self.retry(exc=e, countdown=60)
-    finally:
-        db.close()
 
 
 @shared_task
@@ -85,9 +80,8 @@ def generate_document_embeddings(document_id: int):
     """Generate embeddings for document chunks."""
     logger.info(f"Generating embeddings for document {document_id}")
     
-    db = SessionLocal()
     try:
-        doc_repo = DocumentRepository(db)
+        doc_repo = DocumentRepository()
         document = doc_repo.get_by_id(document_id)
         
         if not document or not document.cleaned_text:
@@ -101,23 +95,28 @@ def generate_document_embeddings(document_id: int):
         embedding_manager = EmbeddingManager()
         embeddings_data = embedding_manager.process_document_chunks(chunks, document_id)
         
-        # Store in vector database
-        from app.utils.vector_db import VectorStore
-        vector_store = VectorStore()
-        vector_db = vector_store.get_or_create_index("documents")
+        # Store embeddings in MongoDB using the repository pattern
+        from app.database.mongodb_models import EmbeddingModel
+        from app.database.mongodb_connection import get_mongodb
+        import asyncio
         
-        # Add embeddings to vector database
-        import numpy as np
-        embeddings = np.array([
-            embedding_manager.generator.bytes_to_embedding(data["embedding_vector"])
-            for data in embeddings_data
-        ])
+        async def store_embeddings():
+            client = await get_mongodb()
+            db = client["quiz_generator"]
+            
+            for embedding_data in embeddings_data:
+                embedding = EmbeddingModel(
+                    document_id=document_id,
+                    chunk_id=embedding_data.get("chunk_index"),
+                    embedding_vector=embedding_data["embedding_vector"],
+                    model_name=embedding_data.get("model_name", "default"),
+                    dimension=len(embedding_data["embedding_vector"]),
+                    metadata=embedding_data.get("metadata", {})
+                )
+                await embedding.insert()
         
-        document_ids = [document_id] * len(embeddings)
-        chunk_indices = [data["chunk_index"] for data in embeddings_data]
-        chunk_texts = [chunks[i] for i in chunk_indices]
-        
-        vector_db.add_embeddings(embeddings, document_ids, chunk_indices, chunk_texts)
+        # Run async task
+        asyncio.run(store_embeddings())
         
         logger.info(f"Embeddings generated for document {document_id}")
         return {
@@ -129,5 +128,3 @@ def generate_document_embeddings(document_id: int):
     except Exception as e:
         logger.error(f"Embedding generation failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()

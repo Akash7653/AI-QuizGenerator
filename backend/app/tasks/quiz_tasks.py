@@ -1,12 +1,10 @@
 from celery import shared_task
 from loguru import logger
-from sqlalchemy.orm import Session
-from app.database.connection import SessionLocal
 from app.ai.question_generator import QuestionGenerator
 from app.ai.validator import QuestionValidator
-from app.database.models.quiz import Quiz, QuizMode
-from app.database.models.question import Question
-from app.database.repository import QuizRepository, QuestionRepository
+from app.database.mongodb_models import QuizModel, QuizMode, QuestionModel
+from app.database.repository.quiz_repository import QuizRepository
+from app.database.repository.question_repository import QuestionRepository
 
 
 @shared_task(bind=True, max_retries=3)
@@ -14,10 +12,9 @@ def generate_quiz_questions(self, quiz_id: int):
     """Generate questions for a quiz asynchronously."""
     logger.info(f"Generating questions for quiz {quiz_id}")
     
-    db = SessionLocal()
     try:
-        quiz_repo = QuizRepository(db)
-        question_repo = QuestionRepository(db)
+        quiz_repo = QuizRepository()
+        question_repo = QuestionRepository()
         
         quiz = quiz_repo.get_by_id(quiz_id)
         if not quiz:
@@ -63,8 +60,6 @@ def generate_quiz_questions(self, quiz_id: int):
     except Exception as e:
         logger.error(f"Quiz question generation failed: {str(e)}")
         raise self.retry(exc=e, countdown=60)
-    finally:
-        db.close()
 
 
 @shared_task
@@ -72,9 +67,8 @@ def validate_question(question_id: int):
     """Validate a specific question."""
     logger.info(f"Validating question {question_id}")
     
-    db = SessionLocal()
     try:
-        question_repo = QuestionRepository(db)
+        question_repo = QuestionRepository()
         question = question_repo.get_by_id(question_id)
         
         if not question:
@@ -112,8 +106,6 @@ def validate_question(question_id: int):
     except Exception as e:
         logger.error(f"Question validation failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()
 
 
 @shared_task

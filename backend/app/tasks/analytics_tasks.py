@@ -1,10 +1,8 @@
 from celery import shared_task
 from loguru import logger
-from sqlalchemy.orm import Session
-from app.database.connection import SessionLocal
 from app.database.services.analytics_service import AnalyticsService
-from app.database.models.quiz_attempt import QuizAttempt, AttemptStatus
-from app.database.repository import QuizAttemptRepository
+from app.database.mongodb_models import QuizAttemptModel, AttemptStatus
+from app.database.repository.quiz_repository import QuizAttemptRepository
 
 
 @shared_task
@@ -12,10 +10,9 @@ def update_user_analytics(user_id: int):
     """Update analytics for a specific user."""
     logger.info(f"Updating analytics for user {user_id}")
     
-    db = SessionLocal()
     try:
-        analytics_service = AnalyticsService(db)
-        attempt_repo = QuizAttemptRepository(db)
+        analytics_service = AnalyticsService()
+        attempt_repo = QuizAttemptRepository()
         
         # Get recent completed attempts
         recent_attempts = attempt_repo.get_by_user_id(user_id, 0, 10)
@@ -38,8 +35,6 @@ def update_user_analytics(user_id: int):
     except Exception as e:
         logger.error(f"Analytics update failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()
 
 
 @shared_task
@@ -47,10 +42,9 @@ def update_all_analytics():
     """Update analytics for all users."""
     logger.info("Updating analytics for all users")
     
-    db = SessionLocal()
     try:
-        from app.database.repository import UserRepository
-        user_repo = UserRepository(db)
+        from app.database.repository.user_repository import UserRepository
+        user_repo = UserRepository()
         
         users = user_repo.get_all(limit=1000)  # Process in batches
         results = []
@@ -72,8 +66,6 @@ def update_all_analytics():
     except Exception as e:
         logger.error(f"Bulk analytics update failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()
 
 
 @shared_task
@@ -81,9 +73,8 @@ def generate_analytics_report(user_id: int, report_type: str = "weekly"):
     """Generate analytics report for user."""
     logger.info(f"Generating {report_type} report for user {user_id}")
     
-    db = SessionLocal()
     try:
-        analytics_service = AnalyticsService(db)
+        analytics_service = AnalyticsService()
         
         if report_type == "dashboard":
             report = analytics_service.get_dashboard_data(user_id)
@@ -103,5 +94,3 @@ def generate_analytics_report(user_id: int, report_type: str = "weekly"):
     except Exception as e:
         logger.error(f"Report generation failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()

@@ -1,9 +1,9 @@
 from celery import shared_task
 from loguru import logger
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from app.database.connection import SessionLocal
-from app.database.repository import UserRepository, QuizRepository, DocumentRepository
+from app.database.repository.user_repository import UserRepository
+from app.database.repository.quiz_repository import QuizRepository
+from app.database.repository.document_repository import DocumentRepository
 
 
 @shared_task
@@ -11,17 +11,16 @@ def cleanup_old_data(days: int = 30):
     """Clean up old data from database."""
     logger.info(f"Cleaning up data older than {days} days")
     
-    db = SessionLocal()
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
         # Clean up old documents (simplified - would need proper cascade handling)
-        doc_repo = DocumentRepository(db)
+        doc_repo = DocumentRepository()
         # This would need proper implementation based on business logic
         
         # Clean up old quiz attempts
-        # from app.database.repository import QuizAttemptRepository
-        # attempt_repo = QuizAttemptRepository(db)
+        # from app.database.repository.quiz_repository import QuizAttemptRepository
+        # attempt_repo = QuizAttemptRepository()
         # old_attempts = attempt_repo.get_all(filters={"created_at__lt": cutoff_date})
         
         logger.info("Data cleanup completed")
@@ -34,8 +33,6 @@ def cleanup_old_data(days: int = 30):
     except Exception as e:
         logger.error(f"Data cleanup failed: {str(e)}")
         return {"status": "error", "message": str(e)}
-    finally:
-        db.close()
 
 
 @shared_task
@@ -74,7 +71,7 @@ def backup_database():
     
     try:
         # This would implement actual database backup logic
-        # For PostgreSQL, this might use pg_dump
+        # For MongoDB, this might use mongodump
         logger.info("Database backup completed")
         return {
             "status": "success",
@@ -94,24 +91,24 @@ def check_system_health():
     try:
         health_status = {
             "database": True,
-            "redis": True,
             "celery": True,
             "disk_space": True,
             "memory": True
         }
         
-        # Check database connection
-        db = SessionLocal()
-        try:
-            db.execute("SELECT 1")
-        except:
-            health_status["database"] = False
-        finally:
-            db.close()
+        # Check MongoDB connection
+        from app.database.mongodb_connection import get_mongodb
+        import asyncio
         
-        # Check Redis
-        from app.utils.cache import cache
-        health_status["redis"] = cache.is_available()
+        async def check_mongodb():
+            try:
+                client = await get_mongodb()
+                await client.admin.command('ping')
+                return True
+            except:
+                return False
+        
+        health_status["database"] = asyncio.run(check_mongodb())
         
         # Check disk space
         import shutil
