@@ -9,12 +9,34 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
     """Custom CORS middleware to ensure headers are added to all responses including errors."""
     
     async def dispatch(self, request: Request, call_next):
+        # Handle preflight OPTIONS requests
+        if request.method == "OPTIONS":
+            origin = request.headers.get("origin")
+            if origin:
+                allowed_origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
+                    "http://localhost:3000",
+                    "http://localhost:4174",
+                    "http://localhost:5173",
+                    "http://localhost:8000",
+                    "https://ai-quiz-generator-orcin.vercel.app",
+                    "https://ai-quiz-generator.vercel.app",
+                    "https://ai-quizgenerator.onrender.com",
+                ]
+                
+                if origin in allowed_origins:
+                    response = Response()
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Access-Control-Allow-Credentials"] = "true"
+                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                    response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept"
+                    return response
+            return Response(status_code=403)
+        
         response = await call_next(request)
         
         # Add CORS headers to all responses
         origin = request.headers.get("origin")
         if origin:
-            # Check if origin is allowed
             allowed_origins = settings.CORS_ORIGINS if settings.CORS_ORIGINS else [
                 "http://localhost:3000",
                 "http://localhost:4174",
@@ -29,7 +51,7 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-                response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Allow-Headers"] = "authorization, content-type, x-requested-with, accept"
         
         return response
 
@@ -62,8 +84,8 @@ def setup_cors(app: FastAPI):
         allow_origin_regex=lan_origin_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["*"],
+        allow_headers=["authorization", "content-type", "x-requested-with", "accept"],
     )
     
-    # Add custom middleware to ensure CORS headers on error responses
+    # Add custom middleware to ensure CORS headers on error responses and preflight
     app.add_middleware(CORSMiddlewareOverride)
