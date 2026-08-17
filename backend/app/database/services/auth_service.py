@@ -98,17 +98,16 @@ class AuthService:
             user = await self.user_repository.get_by_username(identifier)
         if user is None:
             user = await self.user_repository.get_by_email(identifier)
-        
+
         if not user:
             return None
-            
+
         if not self.verify_password(password, user.password):
             return None
-            
+
         if not user.is_active:
             return None
-        
-        return user
+
         return user
     
     async def get_current_user(self, token: str) -> Optional[UserModel]:

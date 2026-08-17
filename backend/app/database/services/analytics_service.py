@@ -19,10 +19,12 @@ class AnalyticsService:
     
     async def get_user_analytics(self, user_id: str) -> AnalyticsModel:
         """Get or create analytics for user."""
+        print(f"[Analytics] Getting analytics for user_id: {user_id} (type: {type(user_id)})")
         analytics = await self.analytics_repository.get_by_user_id(user_id)
-        
+
         if not analytics:
             # Create initial analytics
+            print(f"[Analytics] Creating new analytics for user_id: {user_id}")
             analytics_data = {
                 "user_id": user_id,
                 "overall_accuracy": 0.0,
@@ -41,6 +43,7 @@ class AnalyticsService:
         # Backfill analytics from real historical attempts so already-existing users
         # with prior quiz data are not stuck at zero values after login.
         await self._sync_analytics_from_attempts(user_id, analytics)
+        print(f"[Analytics] Returning analytics for user_id: {user_id} - total_quizzes: {analytics.total_quizzes_attempted}")
         return analytics
 
     async def _sync_analytics_from_attempts(self, user_id: str, analytics: AnalyticsModel) -> None:
@@ -259,11 +262,13 @@ class AnalyticsService:
     async def get_dashboard_data(self, user_id: str) -> Dict[str, Any]:
         """Get comprehensive dashboard data."""
         try:
+            print(f"[Analytics] Getting dashboard data for user_id: {user_id} (type: {type(user_id)})")
             logger.info(f"Getting dashboard data for user {user_id}")
             analytics = await self.get_user_analytics(user_id)
-            
+
             # Get recent attempts
             recent_attempts = await self.quiz_attempt_repository.get_by_user_id(user_id, 0, 10)
+            print(f"[Analytics] Found {len(recent_attempts)} recent attempts for user_id: {user_id}")
             logger.info(f"Found {len(recent_attempts)} recent attempts for user {user_id}")
             
             # Calculate progress data with error handling

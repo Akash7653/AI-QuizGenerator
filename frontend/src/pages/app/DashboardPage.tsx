@@ -21,7 +21,7 @@ const quickActions = [
 ];
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const firstName = user?.name?.split(' ')[0] || 'there';
   const [weakTopics, setWeakTopics] = useState<Array<{ topic: string; accuracy: number }>>([]);
   const [recommendations, setRecommendations] = useState<Array<{ id: string; title: string; description: string; topic: string; actionLabel: string }>>([]);
@@ -38,6 +38,13 @@ export function DashboardPage() {
     let cancelled = false;
 
     const fetchDashboardData = async () => {
+      // Only fetch dashboard data if user is authenticated
+      if (!user) {
+        console.log('[Dashboard] No user authenticated, skipping dashboard data fetch');
+        return;
+      }
+
+      console.log('[Dashboard] Fetching dashboard data for user:', user.id);
       try {
         const [analyticsResult, historyResult, recommendationsResult] = await Promise.allSettled([
           api.get('/analytics/dashboard'),
@@ -144,7 +151,11 @@ export function DashboardPage() {
       }
     };
 
-    void fetchDashboardData();
+    // Only fetch dashboard data when auth is complete and user is available
+    if (!authLoading) {
+      void fetchDashboardData();
+    }
+
     const onResultsUpdate = () => {
       void fetchDashboardData();
     };
@@ -153,7 +164,30 @@ export function DashboardPage() {
       cancelled = true;
       window.removeEventListener('quiz-results-updated', onResultsUpdate);
     };
-  }, [user?.id, user?.averageScore, user?.quizzesCompleted, user?.streak]);
+  }, [user, authLoading]);
+
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="w-10 h-10 border-3 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Show message if user is not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-ink-500 mb-4">Please log in to view your dashboard</p>
+          <Link to="/login" className="btn-primary">
+            Log In
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

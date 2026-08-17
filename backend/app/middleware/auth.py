@@ -9,7 +9,7 @@ async def get_current_user(
     request: Request
 ) -> UserModel:
     """Dependency to get current authenticated user via JWT token only."""
-    
+
     # JWT token authentication only (more reliable for cross-origin)
     auth_header = request.headers.get("authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -17,45 +17,50 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated - missing authorization header",
         )
-    
+
     token = auth_header.replace("Bearer ", "")
-    
+
     # Skip obviously invalid tokens
     if token in ["null", "undefined", ""]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
-    
+
     try:
         auth_service = AuthService()
         user_id = auth_service.verify_token(token)
-        
+
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token - no user ID",
             )
-        
+
+        # Debug logging for user isolation
+        print(f"[Auth] Authenticated user_id: {user_id} (type: {type(user_id)})")
+
         user_repo = UserRepository()
         user = await user_repo.get_by_id(str(user_id))
-        
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found",
             )
-        
+
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User account is inactive"
             )
-        
+
+        print(f"[Auth] Returning authenticated user: {user.email} (ID: {user.id})")
         return user
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[Auth] Authentication error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token: {str(e)}",

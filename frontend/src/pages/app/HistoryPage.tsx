@@ -11,12 +11,14 @@ import { EmptyState } from '@/components/common/States';
 import { formatDate, getDifficultyColor, getScoreColor, formatTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { loadResults } from '@/services/quizService';
+import { useAuth } from '@/context/AuthContext';
 import type { Difficulty, QuizMode } from '@/types';
 
 type SortBy = 'date' | 'score' | 'topic';
 
 export function HistoryPage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | 'all'>('all');
   const [modeFilter, setModeFilter] = useState<QuizMode | 'all'>('all');
@@ -27,6 +29,13 @@ export function HistoryPage() {
     let cancelled = false;
 
     const loadHistory = async () => {
+      // Only load history if user is authenticated
+      if (!user) {
+        console.log('[History] No user authenticated, skipping history load');
+        return;
+      }
+
+      console.log('[History] Loading history for user:', user.id);
       try {
         const response = await api.get('/quiz/history');
         if (cancelled) return;
@@ -64,28 +73,36 @@ export function HistoryPage() {
           timeTaken: Number(item.time_taken ?? 0),
           accuracy: Number(item.percentage ?? 0),
         })), ...mappedLocalResults].filter((item, index, arr) => arr.findIndex((candidate) => candidate.id === item.id) === index);
+        console.log('[History] Loaded', mergedHistory.length, 'history items');
         setQuizHistory(mergedHistory);
       } catch {
-        if (!cancelled) setQuizHistory(loadResults().map((result, index) => ({
-          id: String(result.id ?? `local-history-${index}`),
-          quizId: String(result.quizId ?? result.id ?? `local-history-${index}`),
-          quizTitle: result.quizTitle || 'Quiz',
-          topic: result.topic || 'General',
-          difficulty: String(result.difficulty || 'medium').toLowerCase(),
-          mode: String(result.mode || 'practice').toLowerCase(),
-          date: result.date || new Date().toISOString(),
-          score: Number(result.score ?? 0),
-          correct: Number(result.correct ?? 0),
-          wrong: Number(result.wrong ?? 0),
-          unanswered: Number(result.unanswered ?? 0),
-          total: Number(result.total ?? 0),
-          timeTaken: Number(result.timeTaken ?? 0),
-          accuracy: Number(result.accuracy ?? result.score ?? 0),
-        })));
+        if (!cancelled) {
+          console.log('[History] Backend request failed, using local results');
+          setQuizHistory(loadResults().map((result, index) => ({
+            id: String(result.id ?? `local-history-${index}`),
+            quizId: String(result.quizId ?? result.id ?? `local-history-${index}`),
+            quizTitle: result.quizTitle || 'Quiz',
+            topic: result.topic || 'General',
+            difficulty: String(result.difficulty || 'medium').toLowerCase(),
+            mode: String(result.mode || 'practice').toLowerCase(),
+            date: result.date || new Date().toISOString(),
+            score: Number(result.score ?? 0),
+            correct: Number(result.correct ?? 0),
+            wrong: Number(result.wrong ?? 0),
+            unanswered: Number(result.unanswered ?? 0),
+            total: Number(result.total ?? 0),
+            timeTaken: Number(result.timeTaken ?? 0),
+            accuracy: Number(result.accuracy ?? result.score ?? 0),
+          })));
+        }
       }
     };
 
-    void loadHistory();
+    // Only load history when auth is complete and user is available
+    if (!authLoading) {
+      void loadHistory();
+    }
+
     const onResultsUpdate = () => {
       void loadHistory();
     };
@@ -94,7 +111,7 @@ export function HistoryPage() {
       cancelled = true;
       window.removeEventListener('quiz-results-updated', onResultsUpdate);
     };
-  }, []);
+  }, [user, authLoading]);
 
   const filtered = useMemo(() => {
     let result = [...quizHistory];

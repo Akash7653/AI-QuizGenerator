@@ -338,7 +338,9 @@ class QuizService:
     
     async def get_user_attempts_with_quiz_details(self, user_id: str, skip: int = 0, limit: int = 100) -> list:
         """Get quiz history for the current user, including quizzes without saved attempts."""
+        print(f"[QuizService] Getting history for user_id: {user_id} (type: {type(user_id)})")
         attempts = await self.quiz_attempt_repository.get_by_user_id(str(user_id), skip, limit)
+        print(f"[QuizService] Found {len(attempts)} attempts for user_id: {user_id}")
         history = []
         seen_quiz_ids = set()
 
@@ -347,13 +349,13 @@ class QuizService:
             if not quiz:
                 continue
             seen_quiz_ids.add(str(attempt.quiz_id))
-            
+
             # Calculate correct/wrong counts from percentage and total
             total_questions = quiz.total_questions or attempt.max_score or 0
             percentage = attempt.percentage or 0
             correct_count = int((percentage / 100) * total_questions) if total_questions > 0 else 0
             wrong_count = total_questions - correct_count if total_questions > 0 else 0
-            
+
             history.append({
                 'id': str(attempt.id),
                 'quiz_id': str(attempt.quiz_id),
@@ -395,6 +397,7 @@ class QuizService:
             })
 
         history.sort(key=lambda item: (item.get('completed_at') or 0, item.get('id', 0)), reverse=True)
+        print(f"[QuizService] Returning {len(history)} history items for user_id: {user_id}")
         return history
     
     async def delete_quiz(self, quiz_id: str, user_id: str) -> bool:
