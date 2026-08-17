@@ -347,16 +347,27 @@ class QuizService:
             if not quiz:
                 continue
             seen_quiz_ids.add(str(attempt.quiz_id))
+            
+            # Calculate correct/wrong counts from percentage and total
+            total_questions = quiz.total_questions or attempt.max_score or 0
+            percentage = attempt.percentage or 0
+            correct_count = int((percentage / 100) * total_questions) if total_questions > 0 else 0
+            wrong_count = total_questions - correct_count if total_questions > 0 else 0
+            
             history.append({
                 'id': str(attempt.id),
                 'quiz_id': str(attempt.quiz_id),
+                'quiz_title': quiz.title,
                 'topic': quiz.title,
+                'mode': str(quiz.mode.value) if hasattr(quiz.mode, 'value') else str(quiz.mode) if quiz.mode else 'practice',
                 'total_score': attempt.total_score,
                 'percentage': attempt.percentage,
-                'total_questions': quiz.total_questions or attempt.max_score or 0,
+                'total_questions': total_questions,
                 'time_taken': attempt.time_taken,
                 'completed_at': attempt.completed_at,
-                'difficulty': 'Medium',
+                'difficulty': str(quiz.difficulty.value) if hasattr(quiz.difficulty, 'value') else str(quiz.difficulty) if quiz.difficulty else 'medium',
+                'correct_count': correct_count,
+                'wrong_count': wrong_count,
                 'question_type': 'Mixed',
                 'source_type': 'topic',
             })
@@ -368,13 +379,17 @@ class QuizService:
             history.append({
                 'id': f"quiz-{quiz.id}",
                 'quiz_id': str(quiz.id),
+                'quiz_title': quiz.title,
                 'topic': quiz.title,
+                'mode': str(quiz.mode.value) if hasattr(quiz.mode, 'value') else str(quiz.mode) if quiz.mode else 'practice',
                 'total_score': float(quiz.total_marks or 0),
                 'percentage': 0.0,
                 'total_questions': quiz.total_questions or 0,
                 'time_taken': 0,
                 'completed_at': int(quiz.created_at.timestamp()) if quiz.created_at else None,
-                'difficulty': 'Medium',
+                'difficulty': str(quiz.difficulty.value) if hasattr(quiz.difficulty, 'value') else str(quiz.difficulty) if quiz.difficulty else 'medium',
+                'correct_count': 0,
+                'wrong_count': 0,
                 'question_type': 'Mixed',
                 'source_type': 'topic',
             })

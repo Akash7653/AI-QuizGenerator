@@ -244,7 +244,9 @@ class QuizModel(Document):
     
     title: str
     description: Optional[str] = None
+    topic: Optional[str] = None  # Topic name for history display
     mode: QuizMode = QuizMode.PRACTICE
+    difficulty: Difficulty = Difficulty.MEDIUM
     
     total_questions: int = 10
     total_marks: float = 10.0
@@ -269,6 +271,7 @@ class QuizModel(Document):
             "document_id",
             "topic_id",
             "mode",
+            "difficulty",
             "created_at"
         ]
 

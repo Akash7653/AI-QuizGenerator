@@ -107,7 +107,9 @@ async def generate_topic_quiz(
 
         return {
             'topic': topic,
+            'title': f'Quiz - {topic}',
             'difficulty': request.difficulty or 'Medium',
+            'mode': 'practice',
             'sourceType': request.source_type,
             'questionType': request.question_type,
             'questions': normalized_questions,
@@ -282,7 +284,9 @@ async def quick_save_quiz(
         quiz_data = {
             "user_id": str(current_user.id),
             "title": f"Quiz - {request.topic}",
+            "topic": request.topic,
             "mode": "practice",
+            "difficulty": request.difficulty or "medium",
             "total_questions": request.total_questions,
             "total_marks": request.total_questions  # 1 mark per question
         }
