@@ -139,8 +139,10 @@ export const quizService = {
         text: q.question,
         type: q.type || 'mcq',
         options: q.options || [],
-        correctAnswer: q.correctAnswer,
+        correctOptionId: q.correctOptionId || q.correctAnswer,
         explanation: q.explanation,
+        topic: q.topic || topic,
+        difficulty: q.difficulty || config.difficulty,
       }));
 
       const quiz: Quiz = {

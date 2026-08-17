@@ -88,7 +88,7 @@ export function SettingsPage() {
         {/* Content */}
         <div className="lg:col-span-3">
           {activeSection === 'account' && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6">
               <h3 className="font-bold text-ink-900 dark:text-white mb-5">Account Information</h3>
               <div className="space-y-4">
                 <div>
@@ -123,7 +123,7 @@ export function SettingsPage() {
           )}
 
           {activeSection === 'preferences' && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6">
               <h3 className="font-bold text-ink-900 dark:text-white mb-5">Quiz Preferences</h3>
               <div className="space-y-5">
                 <div>
@@ -182,7 +182,7 @@ export function SettingsPage() {
           )}
 
           {activeSection === 'notifications' && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6">
               <h3 className="font-bold text-ink-900 dark:text-white mb-5">Notification Preferences</h3>
               <div className="space-y-3">
                 {[
@@ -191,13 +191,13 @@ export function SettingsPage() {
                   { key: 'recommendations' as const, label: 'Recommendations', desc: 'AI-powered study suggestions' },
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-3 rounded-xl bg-ink-50 dark:bg-ink-800/50">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-ink-900 dark:text-ink-100">{item.label}</p>
                       <p className="text-xs text-ink-500 dark:text-ink-400">{item.desc}</p>
                     </div>
                     <button
                       onClick={() => handleSaveNotifs(item.key)}
-                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ml-3 ${
                         prefs.notifications[item.key] ? 'bg-brand-600' : 'bg-ink-200 dark:bg-ink-700'
                       }`}
                     >
@@ -214,7 +214,7 @@ export function SettingsPage() {
           )}
 
           {activeSection === 'appearance' && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6">
               <h3 className="font-bold text-ink-900 dark:text-white mb-5">Appearance</h3>
               <p className="text-sm text-ink-500 dark:text-ink-400 mb-4">Choose how QuizGen looks to you.</p>
               <div className="grid grid-cols-3 gap-3">

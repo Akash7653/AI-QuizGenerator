@@ -23,10 +23,6 @@ export function QuizResultsPage() {
     );
   }
 
-  const radius = 64;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (result.score / 100) * circumference;
-
   const stats = [
     { icon: CheckCircle2, label: 'Correct', value: result.correct, color: 'text-success-600 dark:text-success-400', bg: 'bg-success-100 dark:bg-success-900/30' },
     { icon: XCircle, label: 'Wrong', value: result.wrong, color: 'text-error-600 dark:text-error-400', bg: 'bg-error-100 dark:bg-error-900/30' },
@@ -64,39 +60,30 @@ export function QuizResultsPage() {
         <h1 className="text-2xl font-extrabold text-ink-900 dark:text-white mb-2 relative z-10">Quiz Complete</h1>
         <p className="mb-6 text-sm text-ink-600 dark:text-ink-400 relative z-10">{summaryTitle}</p>
 
-        {/* Circular score */}
-        <div className="relative w-36 h-36 sm:w-40 sm:h-40 mx-auto mb-4 flex items-center justify-center">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-            <circle cx="100" cy="100" r={radius} fill="none" strokeWidth="12" className="stroke-ink-100 dark:stroke-ink-800" />
-            <motion.circle
-              cx="100"
-              cy="100"
-              r={radius}
-              fill="none"
-              strokeWidth="12"
-              strokeLinecap="round"
-              className={result.score >= 80 ? 'stroke-success-500' : result.score >= 60 ? 'stroke-brand-500' : 'stroke-warning-500'}
-              strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset: offset }}
-              transition={{ duration: 1.5, ease: 'easeOut' }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex items-end justify-center gap-1 leading-none"
-            >
-              <span className={`text-2xl sm:text-3xl font-extrabold ${getScoreColor(result.score)}`}>
-                {result.score}
-              </span>
-              <span className={`text-lg sm:text-xl font-bold ${getScoreColor(result.score)}`}>
-                %
-              </span>
-            </motion.div>
-            <p className="text-xs sm:text-sm text-ink-500 mt-2">{getScoreLabel(result.score)}</p>
+        {/* Simple score display */}
+        <div className="mb-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="flex items-end justify-center gap-1 leading-none"
+          >
+            <span className={`text-5xl sm:text-6xl font-extrabold ${getScoreColor(result.score)}`}>
+              {result.score}
+            </span>
+            <span className={`text-3xl sm:text-4xl font-bold ${getScoreColor(result.score)}`}>
+              %
+            </span>
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className={`text-sm sm:text-base font-semibold mt-2 ${getScoreColor(result.score)}`}
+          >
+            {getScoreLabel(result.score)}
+          </motion.p>
+        </div>
           </div>
         </div>
 

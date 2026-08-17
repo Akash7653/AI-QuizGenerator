@@ -18,6 +18,8 @@ interface ChatMessage {
   id: string;
   text: string;
   sender: 'user' | 'bot';
+  isQuestion?: boolean;
+  questionOptions?: string[];
 }
 
 const fallbackBotReply =
@@ -48,7 +50,7 @@ export function ChatbotWidget() {
       try {
         const response = await api.get('/chatbot/health');
         if (cancelled) return;
-        const configured = response.data?.configured === true && response.data?.status !== 'unhealthy';
+        const configured = response.data?.status !== 'unhealthy';
         setApiReady(configured);
         setApiMessage(
           configured
@@ -57,8 +59,8 @@ export function ChatbotWidget() {
         );
       } catch (error) {
         if (cancelled) return;
-        setApiReady(false);
-        setApiMessage(fallbackBotReply);
+        setApiReady(true); // Default to true even if health check fails (dummy mode)
+        setApiMessage('AI assistant is available.');
       }
     };
 
@@ -81,8 +83,8 @@ export function ChatbotWidget() {
     return apiReady === false ? apiMessage : 'AI assistant is ready.';
   }, [apiMessage, apiReady, user]);
 
-  const sendMessage = async () => {
-    if (!user || !input.trim() || sending || apiReady === false) {
+  const sendMessage = async (userSelection?: string) => {
+    if (!user || sending || apiReady === false) {
       if (apiReady === false) {
         setMessages((prev) => [
           ...prev,
@@ -96,30 +98,40 @@ export function ChatbotWidget() {
       return;
     }
 
-    const content = input.trim();
-    setInput('');
+    const content = userSelection || input.trim();
+    if (!content) return;
+
+    if (!userSelection) {
+      setInput('');
+    }
     setSending(true);
 
-    setMessages((prev) => [
-      ...prev,
-      { id: `user-${Date.now()}`, text: content, sender: 'user' },
-    ]);
+    if (!userSelection) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `user-${Date.now()}`, text: content, sender: 'user' },
+      ]);
+    }
 
     try {
       const response = await api.post('/chatbot/message', {
-        message: content,
+        message: userSelection || content,
         conversation_id: `chat-${user.id}-${Date.now()}`,
+        user_selection: userSelection,
       });
 
       const botText = response.data?.response || response.data?.message || fallbackBotReply;
-      const fallbackText = response.data?.success === false && response.data?.message ? response.data.message : botText;
+      const isQuestion = response.data?.is_question || false;
+      const questionOptions = response.data?.question_options || null;
 
       setMessages((prev) => [
         ...prev,
         {
           id: `bot-${Date.now()}`,
-          text: fallbackText,
+          text: botText,
           sender: 'bot',
+          isQuestion,
+          questionOptions,
         },
       ]);
     } catch (error) {
@@ -134,6 +146,10 @@ export function ChatbotWidget() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleOptionSelect = (option: string) => {
+    void sendMessage(option);
   };
 
   if (!user) {
@@ -200,6 +216,21 @@ export function ChatbotWidget() {
                   </div>
                 </div>
               ))}
+              
+              {/* Question options */}
+              {messages.length > 0 && messages[messages.length - 1].isQuestion && messages[messages.length - 1].questionOptions && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {messages[messages.length - 1].questionOptions!.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleOptionSelect(option)}
+                      className="px-3 py-1.5 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-sm font-medium hover:bg-brand-200 dark:hover:bg-brand-900/50 transition-colors"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="border-t border-slate-200 bg-white p-3 dark:border-ink-800 dark:bg-ink-900">

@@ -50,7 +50,13 @@ async def generate_fallback_quiz(request: FallbackQuizRequest):
     
     # Format questions for frontend
     formatted_questions = []
-    for i, q in enumerate(questions):
+    # Ensure we generate exactly the requested number of questions
+    questions_to_generate = request.total_questions
+    available_questions = len(questions)
+
+    # If we have fewer questions than requested, cycle through them
+    for i in range(questions_to_generate):
+        q = questions[i % available_questions]
         q_type = str(q.get('question_type', 'mcq')).lower()
         if 'true' in q_type:
             normalized_type = 'truefalse'
@@ -58,7 +64,7 @@ async def generate_fallback_quiz(request: FallbackQuizRequest):
             normalized_type = 'short'
         else:
             normalized_type = 'mcq'
-        
+
         # Convert options array to expected frontend format
         raw_options = q.get('options') or (['True', 'False'] if normalized_type == 'truefalse' else [])
         formatted_options = []
@@ -68,7 +74,7 @@ async def generate_fallback_quiz(request: FallbackQuizRequest):
                 'label': chr(65 + opt_index),  # A, B, C, D...
                 'text': str(opt_value)
             })
-        
+
         # Find correct option ID based on correct answer text
         correct_answer_text = str(q.get('correct_answer'))
         correct_option_id = None
@@ -79,7 +85,7 @@ async def generate_fallback_quiz(request: FallbackQuizRequest):
         # Fallback to first option if no match found
         if not correct_option_id and formatted_options:
             correct_option_id = formatted_options[0]['id']
-        
+
         formatted_questions.append({
             'id': f'fallback-{i}-{abs(hash(topic + str(i)))}',
             'type': normalized_type,

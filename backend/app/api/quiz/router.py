@@ -63,7 +63,13 @@ async def generate_topic_quiz(
             raw_questions = generator.generate_mixed_questions(context=context, difficulty=difficulty, total_count=request.total_questions, topic=topic)
 
         normalized_questions = []
-        for index, item in enumerate(raw_questions[:request.total_questions]):
+        # Ensure we generate exactly the requested number of questions
+        questions_to_generate = request.total_questions
+        available_questions = len(raw_questions)
+
+        # If we have fewer questions than requested, cycle through them
+        for index in range(questions_to_generate):
+            item = raw_questions[index % available_questions]
             q_type = str(item.get('question_type', 'mcq')).lower()
             if 'true' in q_type:
                 normalized_type = 'truefalse'
