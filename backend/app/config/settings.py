@@ -53,6 +53,7 @@ class Settings(BaseSettings):
         "https://ai-quiz-generator-orcin.vercel.app",
         "https://ai-quiz-generator.vercel.app",
         "https://ai-quizgenerator.onrender.com",
+        "https://ai-quizgenerator.onrender.com",
     ]
     
     @validator("CORS_ORIGINS", pre=True)

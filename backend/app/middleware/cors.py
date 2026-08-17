@@ -21,6 +21,7 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
                     "https://ai-quiz-generator-orcin.vercel.app",
                     "https://ai-quiz-generator.vercel.app",
                     "https://ai-quizgenerator.onrender.com",
+                    "https://ai-quizgenerator.onrender.com",
                 ]
                 
                 if origin in allowed_origins:
@@ -46,6 +47,7 @@ class CORSMiddlewareOverride(BaseHTTPMiddleware):
                     "http://localhost:8000",
                     "https://ai-quiz-generator-orcin.vercel.app",
                     "https://ai-quiz-generator.vercel.app",
+                    "https://ai-quizgenerator.onrender.com",
                     "https://ai-quizgenerator.onrender.com",
                 ]
                 
@@ -89,6 +91,7 @@ def setup_cors(app: FastAPI):
         "https://ai-quiz-generator-orcin.vercel.app",
         "https://ai-quiz-generator.vercel.app",
         "https://ai-quizgenerator.onrender.com",
+        "https://ai-quizgenerator.onrender.com",
     ]
 
     print(f"[CORS] Configuring CORS with origins: {origins}")
@@ -97,7 +100,8 @@ def setup_cors(app: FastAPI):
     lan_origin_regex = (
         r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$|"
         r"^https?://(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)([0-9]{1,3}\.){0,2}[0-9]{1,3}(:[0-9]+)?$|"
-        r"^https://.*\\.(vercel\\.app|onrender\\.com)$"
+        r"^https?://.*\\.(vercel\\.app|onrender\\.com)$"
+        r"^https?://ai-quizgenerator\.onrender\.com$"
     )
 
     # Add FastAPI's CORS middleware first
@@ -108,6 +112,7 @@ def setup_cors(app: FastAPI):
         allow_credentials=False,  # JWT doesn't need credentials
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
     
     # Add custom middleware to ensure CORS headers on error responses
