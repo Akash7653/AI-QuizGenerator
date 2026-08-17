@@ -31,12 +31,8 @@ class PromptEngine:
         Generate multiple choice questions with the following format:
         
         Question: [question text]
-        Options:
-        A) [option 1]
-        B) [option 2]
-        C) [option 3]
-        D) [option 4]
-        Correct Answer: [A/B/C/D]
+        Options: ["option 1", "option 2", "option 3", "option 4"]
+        Correct Answer: [exact text of correct option]
         Explanation: [detailed explanation]
         Difficulty: [easy/medium/hard]
         Topic: [topic]
@@ -54,6 +50,7 @@ class PromptEngine:
         Generate true/false questions with the following format:
         
         Question: [statement]
+        Options: ["True", "False"]
         Correct Answer: [True/False]
         Explanation: [detailed explanation]
         Difficulty: [easy/medium/hard]

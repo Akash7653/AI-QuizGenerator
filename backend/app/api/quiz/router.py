@@ -72,12 +72,33 @@ async def generate_topic_quiz(
             else:
                 normalized_type = 'mcq'
 
+            # Convert options array to expected frontend format
+            raw_options = item.get('options') or (['True', 'False'] if normalized_type == 'truefalse' else [])
+            formatted_options = []
+            for opt_index, opt_value in enumerate(raw_options):
+                formatted_options.append({
+                    'id': f'opt-{index}-{opt_index}',
+                    'label': chr(65 + opt_index),  # A, B, C, D...
+                    'text': str(opt_value)
+                })
+
+            # Find correct option ID based on correct answer text
+            correct_answer_text = str(item.get('correct_answer') or item.get('answer') or 'True')
+            correct_option_id = None
+            for opt in formatted_options:
+                if opt['text'] == correct_answer_text:
+                    correct_option_id = opt['id']
+                    break
+            # Fallback to first option if no match found
+            if not correct_option_id and formatted_options:
+                correct_option_id = formatted_options[0]['id']
+
             normalized_questions.append({
                 'id': f'gemini-{index}-{abs(hash(topic + str(index)))}',
                 'type': normalized_type,
                 'question': item.get('question_text') or item.get('question') or f'Explain the key idea behind {topic}.',
-                'options': item.get('options') or (['True', 'False'] if normalized_type == 'truefalse' else []),
-                'correctAnswer': str(item.get('correct_answer') or item.get('answer') or 'True'),
+                'options': formatted_options,
+                'correctOptionId': correct_option_id,
                 'explanation': item.get('explanation') or 'This is a core concept within the topic.',
                 'source': f'AI-generated through {topic}',
                 'topic': topic,

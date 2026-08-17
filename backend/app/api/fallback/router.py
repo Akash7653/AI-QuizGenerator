@@ -59,12 +59,33 @@ async def generate_fallback_quiz(request: FallbackQuizRequest):
         else:
             normalized_type = 'mcq'
         
+        # Convert options array to expected frontend format
+        raw_options = q.get('options') or (['True', 'False'] if normalized_type == 'truefalse' else [])
+        formatted_options = []
+        for opt_index, opt_value in enumerate(raw_options):
+            formatted_options.append({
+                'id': f'opt-{i}-{opt_index}',
+                'label': chr(65 + opt_index),  # A, B, C, D...
+                'text': str(opt_value)
+            })
+        
+        # Find correct option ID based on correct answer text
+        correct_answer_text = str(q.get('correct_answer'))
+        correct_option_id = None
+        for opt in formatted_options:
+            if opt['text'] == correct_answer_text:
+                correct_option_id = opt['id']
+                break
+        # Fallback to first option if no match found
+        if not correct_option_id and formatted_options:
+            correct_option_id = formatted_options[0]['id']
+        
         formatted_questions.append({
             'id': f'fallback-{i}-{abs(hash(topic + str(i)))}',
             'type': normalized_type,
             'question': q.get('question_text'),
-            'options': q.get('options') or (['True', 'False'] if normalized_type == 'truefalse' else []),
-            'correctAnswer': str(q.get('correct_answer')),
+            'options': formatted_options,
+            'correctOptionId': correct_option_id,
             'explanation': q.get('explanation', 'This is a core concept within the topic.'),
             'source': f'Local question bank - {fallback_topic}',
             'topic': topic,

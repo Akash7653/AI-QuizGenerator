@@ -73,10 +73,19 @@ class QuestionGenerator:
         # Convert local questions to expected format
         formatted_questions = []
         for i, q in enumerate(local_questions):
+            # Ensure options are properly formatted
+            raw_options = q.get('options', [])
+            if not raw_options:
+                # Add default options if missing
+                if q.get('question_type') == 'true_false':
+                    raw_options = ['True', 'False']
+                else:
+                    raw_options = ['Option A', 'Option B', 'Option C', 'Option D']
+            
             formatted_questions.append({
                 'question_text': q['question_text'],
                 'question_type': q['question_type'],
-                'options': q.get('options'),
+                'options': raw_options,
                 'correct_answer': q['correct_answer'],
                 'explanation': q.get('explanation'),
                 'difficulty': q.get('difficulty', 'medium'),
